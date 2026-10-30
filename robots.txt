@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hands4unity.org/sitemap.xml
