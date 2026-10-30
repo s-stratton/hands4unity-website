@@ -53,11 +53,17 @@ def img(R: str, path: str, alt: str = "", cls: str = "", eager: bool = False, si
     return f'<img src="{R}assets/img/{path}" alt="{e(alt)}"{c} {loading}>'
 
 
-def logo() -> str:
+def logo(R: str) -> str:
+    # The organisation's own logo, taken from the old WordPress site (only available at 235x80).
+    return f'<img class="logo" src="{R}assets/img/logo-original.png" alt="Hands 4 Unity" width="235" height="80">'
+
+
+def footer_logo(R: str) -> str:
+    # The logo image is too low-res for the dark footer, so pair its hands icon with the name as text.
     return (
-        '<span class="logo">'
-        f'<span class="logo-mark">{shamrock()}</span>'
-        '<span class="logo-word"><span class="lw">Hands</span><span class="l4">4</span><span class="lw">Unity</span></span>'
+        '<span class="footer-logo">'
+        f'<img src="{R}assets/img/logo-icon.png" alt="" width="70" height="70">'
+        '<span class="footer-logo-word">Hands <span class="footer-logo-4">4</span> Unity</span>'
         '</span>'
     )
 
@@ -171,7 +177,7 @@ def layout(path: str, title: str, description: str, body: str, active: str = "",
   <meta name="description" content="{e(description)}">
   <link rel="canonical" href="{canonical}">
   <meta name="theme-color" content="#1f1a17">
-  <link rel="icon" href="{R}assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="{R}assets/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="{R}assets/apple-touch-icon.png">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="{SITE['name']}">
@@ -196,7 +202,7 @@ def layout(path: str, title: str, description: str, body: str, active: str = "",
 </div>
 <header class="site-header">
   <div class="container header-inner">
-    <a class="brand" href="{link(R, '')}" aria-label="Hands 4 Unity home">{logo()}</a>
+    <a class="brand" href="{link(R, '')}" aria-label="Hands 4 Unity home">{logo(R)}</a>
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
       <span class="nav-toggle-open">{icon('menu')}</span><span class="nav-toggle-close">{icon('x')}</span><span class="sr-only">Menu</span>
     </button>
@@ -212,7 +218,7 @@ def layout(path: str, title: str, description: str, body: str, active: str = "",
 <footer class="site-footer">
   <div class="container footer-grid">
     <div class="footer-brand">
-      <a class="brand brand--light" href="{link(R, '')}" aria-label="Hands 4 Unity home">{logo()}</a>
+      <a class="brand brand--light" href="{link(R, '')}" aria-label="Hands 4 Unity home">{footer_logo(R)}</a>
       <p>A support network for women and families of all backgrounds, in Drogheda, across Ireland and abroad.</p>
       {socials()}
     </div>
@@ -867,13 +873,6 @@ def build_meta_files() -> None:
         encoding="utf-8",
     )
     (ROOT / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {SITE['url']}/sitemap.xml\n", encoding="utf-8")
-    (ROOT / "assets" / "favicon.svg").write_text(
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-16 -16 32 32">'
-        '<rect x="-16" y="-16" width="32" height="32" rx="8" fill="#f08a3c"/>'
-        f'<g fill="#1f1a17" transform="translate(0 -1) scale(1.05)">{shamrock().split(">", 1)[1].rsplit("</svg>", 1)[0]}</g>'
-        "</svg>",
-        encoding="utf-8",
-    )
 
 
 def main() -> None:

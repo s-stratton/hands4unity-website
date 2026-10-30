@@ -101,16 +101,12 @@ address { font-style: normal; }
 
 /* ---------- logo ---------- */
 .brand { display: inline-flex; text-decoration: none; }
-.logo { display: inline-flex; align-items: center; gap: 10px; }
-.logo-mark { width: 42px; height: 42px; border-radius: 50%; background: var(--peach); display: grid; place-items: center; color: var(--green); flex: none; }
-.logo-mark .shamrock { width: 26px; height: 26px; }
-.logo-word { display: inline-flex; font: 800 1.05rem/1 var(--font-body); letter-spacing: .08em; text-transform: uppercase; }
-.logo-word > span { padding: 8px 8px 7px; }
-.lw { background: var(--ink); color: var(--white); }
-.lw:first-child { border-radius: 6px 0 0 6px; }
-.lw:last-child { border-radius: 0 6px 6px 0; }
-.l4 { background: var(--orange); color: var(--ink); }
-.brand--light .lw { background: var(--white); color: var(--ink); }
+/* The logo image has a white background: multiply blends it into the cream header. */
+.logo { display: block; height: 60px; width: auto; mix-blend-mode: multiply; }
+.footer-logo { display: inline-flex; align-items: center; gap: 14px; }
+.footer-logo img { width: 54px; height: 54px; border-radius: 50%; }
+.footer-logo-word { display: inline-flex; align-items: center; gap: .5em; font: 800 1.15rem/1 var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--white); }
+.footer-logo-4 { background: var(--peach-2); color: var(--ink); padding: 5px 7px 4px; border-radius: 3px; }
 
 /* ---------- header ---------- */
 .topbar { background: var(--ink); color: rgba(255,255,255,.8); font-size: .85rem; }
@@ -150,10 +146,7 @@ address { font-style: normal; }
 }
 @media (max-width: 560px) {
   .topbar .socials { display: none; }
-  .logo-mark { width: 36px; height: 36px; }
-  .logo-mark .shamrock { width: 22px; height: 22px; }
-  .logo-word { font-size: .92rem; }
-  .logo-word > span { padding: 7px 6px 6px; }
+  .logo { height: 48px; }
 }
 
 /* ---------- socials ---------- */
