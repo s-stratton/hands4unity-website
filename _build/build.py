@@ -25,6 +25,8 @@ from projects import BY_SLUG, PROJECTS
 ROOT = Path(__file__).resolve().parent.parent
 YEAR = _dt.date.today().year
 ASSET_VERSION = _dt.date.today().strftime("%Y%m%d")
+# Cloudflare Web Analytics: counts visits without cookies. The token is public by design.
+CF_ANALYTICS_TOKEN = "8e46b1fcd0484569975259df725713fb"
 
 NAV = [
     ("", "Home"),
@@ -191,6 +193,7 @@ def layout(path: str, title: str, description: str, body: str, active: str = "",
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{R}css/styles.css?v={ASSET_VERSION}">
   <script defer src="{R}js/main.js?v={ASSET_VERSION}"></script>
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{{"token": "{CF_ANALYTICS_TOKEN}"}}'></script>
 </head>
 <body class="{body_class}">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -767,7 +770,7 @@ def build_privacy() -> None:
       <li>Your phone number</li>
       <li>Anything you tell us in your message, such as the support you are looking for or how you would like to get involved</li>
     </ul>
-    <p>Our website does not use analytics or advertising trackers.</p>
+    <p>To understand how many people visit our website, we use Cloudflare Web Analytics. It counts page visits without cookies and without identifying you, and it does not track you across other websites. We do not use advertising trackers.</p>
 
     <h2>How we use your data</h2>
     <ul>
@@ -814,11 +817,12 @@ def build_cookies() -> None:
     <p>Cookies are small text files that websites place on your device to remember information about your visit.</p>
 
     <h2>How we use cookies</h2>
-    <p>This website does not set any cookies, and it does not use analytics, advertising or social media tracking. That is why you will not see a cookie banner here.</p>
+    <p>This website does not set any cookies, and it does not use advertising or social media tracking. That is why you will not see a cookie banner here.</p>
 
     <h2>Third-party services</h2>
     <p>Some pages connect to services run by other organisations:</p>
     <ul>
+      <li><strong>Cloudflare Web Analytics</strong> counts how many people visit our pages. It does not use cookies and does not identify individual visitors.</li>
       <li><strong>Google Fonts</strong> provides the typefaces used on this site. Your browser requests the fonts from Google's servers. Google Fonts does not set cookies.</li>
       <li><strong>GivenGain</strong>, <strong>Eventbrite</strong>, <strong>Google Maps</strong> and our social media pages may set their own cookies when you follow a link to them. Their own cookie policies apply.</li>
     </ul>
