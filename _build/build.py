@@ -131,7 +131,7 @@ def donate_band(R: str) -> str:
       <p>Hands 4 Unity relies on the generosity of individuals to do our work. If you would like to support our causes, please consider donating.</p>
     </div>
     <div class="donate-actions">
-      {btn(R, 'Donate', SITE['donate'], 'dark', 'heart', external=True)}
+      {btn(R, 'Donate', SITE['donate'], 'primary', 'heart', external=True)}
       {btn(R, 'Get involved', 'get-involved/', 'ghost-dark')}
     </div>
   </div>
@@ -546,7 +546,7 @@ def build_project(p: dict) -> None:
 <section class="cta-band">
   <div class="container cta-inner">
     <div><h2>{e(c['title'])}</h2><p>{e(c['text'])}</p></div>
-    <div class="donate-actions">{btn(R, c['label'], c['href'], 'dark')}{second}</div>
+    <div class="donate-actions">{btn(R, c['label'], c['href'], 'primary')}{second}</div>
   </div>
 </section>"""
 
