@@ -4,7 +4,8 @@
  * A private web page with an inbox of website form submissions (from the
  * "Hands 4 Unity website" Google Sheet) and website visits (from Cloudflare Web Analytics).
  * The page polls getInbox() every 30 seconds; read/unread/archived is stored in a "Status"
- * column in each tab of the Sheet, so everyone sees the same state.
+ * column in each tab of the Sheet, so everyone sees the same state. Newsletter unsubscribes
+ * are stored in an "Unsubscribed" column on the Newsletter tab.
  *
  * A standalone Apps Script project in the info@hands4unity.org account, separate from the
  * forms script so that its access can be limited to hands4unity.org accounts.
@@ -133,8 +134,9 @@ function getInbox() {
   TABS.forEach(function (t) {
     var sheet = ss.getSheetByName(t.tab);
     if (!sheet || sheet.getLastRow() < 2) return;
-    var col = statusColumn_(sheet);
-    var values = sheet.getRange(1, 1, sheet.getLastRow(), Math.max(sheet.getLastColumn(), col)).getValues();
+    var col = column_(sheet, "Status");
+    var unsubCol = t.type === "newsletter" ? column_(sheet, "Unsubscribed") : 0;
+    var values = sheet.getRange(1, 1, sheet.getLastRow(), Math.max(sheet.getLastColumn(), col, unsubCol)).getValues();
     var headers = values[0].map(String);
     for (var i = 1; i < values.length; i++) {
       var r = values[i];
@@ -142,8 +144,9 @@ function getInbox() {
       var o = {};
       headers.forEach(function (h, j) { o[h] = r[j]; });
       var status = String(r[col - 1]);
+      var id = t.tab + "|" + (i + 1) + "|" + r[0].getTime();
       items.push({
-        id: t.tab + "|" + (i + 1) + "|" + r[0].getTime(),
+        id: id,
         type: t.type,
         received: r[0].toISOString(),
         name: str_(o.Name),
@@ -155,7 +158,9 @@ function getInbox() {
         page: str_(o.Page),
         status: STATUSES.indexOf(status) >= 0 ? status : "unread"
       });
-      if (t.type === "newsletter") subscribers.push({ email: str_(o.Email), received: r[0].toISOString() });
+      if (t.type === "newsletter") {
+        subscribers.push({ id: id, email: str_(o.Email).toLowerCase(), received: r[0].toISOString(), removed: !!r[unsubCol - 1] });
+      }
     }
   });
   var newest = function (x, y) { return x.received < y.received ? 1 : -1; };
@@ -170,10 +175,23 @@ function getInbox() {
   };
 }
 
-// ids come from getInbox: "Tab|row|receivedMillis". Rows can move if someone edits the
-// Sheet, so each id is checked against its timestamp and looked up again if it has moved.
 function setStatus(ids, status) {
   if (STATUSES.indexOf(status) < 0) throw new Error("Unknown status " + status);
+  updateRows_(ids, "Status", function () { return status; });
+  return true;
+}
+
+// Removes people from (or adds them back to) the newsletter list. The row stays in the
+// Sheet with the date they were removed, so there is a record of the unsubscribe.
+function setUnsubscribed(ids, removed) {
+  var when = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
+  updateRows_(ids, "Unsubscribed", function () { return removed ? when : ""; });
+  return true;
+}
+
+// ids come from getInbox: "Tab|row|receivedMillis". Rows can move if someone edits the
+// Sheet, so each id is checked against its timestamp and looked up again if it has moved.
+function updateRows_(ids, header, value) {
   var lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
@@ -187,21 +205,20 @@ function setStatus(ids, status) {
       if (!TABS.some(function (t) { return t.tab === tab; })) return;
       var sheet = ss.getSheetByName(tab);
       if (!sheet || sheet.getLastRow() < 2) return;
-      var col = statusColumn_(sheet);
+      var col = column_(sheet, header);
       var n = sheet.getLastRow();
       var times = sheet.getRange(1, 1, n, 1).getValues().map(function (r) { return r[0] instanceof Date ? r[0].getTime() : null; });
-      var statusRange = sheet.getRange(1, col, n, 1);
-      var statuses = statusRange.getValues();
+      var range = sheet.getRange(1, col, n, 1);
+      var cells = range.getValues();
       byTab[tab].forEach(function (ref) {
         var row = times[ref.row - 1] === ref.ms ? ref.row : times.indexOf(ref.ms) + 1;
-        if (row > 1) statuses[row - 1][0] = status;
+        if (row > 1) cells[row - 1][0] = value();
       });
-      statusRange.setValues(statuses);
+      range.setValues(cells);
     });
   } finally {
     lock.releaseLock();
   }
-  return true;
 }
 
 function spreadsheet_() {
@@ -210,14 +227,14 @@ function spreadsheet_() {
   return SpreadsheetApp.openById(id);
 }
 
-// The forms script writes the submission columns; this adds a "Status" column after them.
-// An empty Status means unread.
-function statusColumn_(sheet) {
+// The forms script writes the submission columns; the dashboard adds its own columns
+// ("Status", "Unsubscribed") after them. An empty Status means unread.
+function column_(sheet, header) {
   var lastCol = Math.max(sheet.getLastColumn(), 1);
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
-  var i = headers.indexOf("Status");
+  var i = headers.indexOf(header);
   if (i >= 0) return i + 1;
-  sheet.getRange(1, lastCol + 1).setValue("Status").setFontWeight("bold");
+  sheet.getRange(1, lastCol + 1).setValue(header).setFontWeight("bold");
   return lastCol + 1;
 }
 

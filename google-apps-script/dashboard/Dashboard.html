@@ -149,7 +149,16 @@
   .bars .fill { display: block; height: 100%; border-radius: 3px; background: var(--bar); min-width: 3px; }
   .empty, .loading { color: var(--muted); font-size: .9rem; }
   .error { background: var(--error-bg); color: var(--error-ink); border-radius: 12px; padding: 12px 14px; font-size: .9rem; margin-bottom: 16px; }
-  .subs { max-height: calc(100vh - 300px); overflow-y: auto; }
+  .subs { max-height: calc(100vh - 340px); overflow-y: auto; }
+  .subs td:last-child { width: 1%; white-space: nowrap; text-align: right; }
+  .subs tr.is-removed td:first-child { color: var(--muted); text-decoration: line-through; }
+  .link-btn { border: 0; background: none; color: var(--muted); font-size: .82rem; text-decoration: underline; cursor: pointer; padding: 0; }
+  .link-btn.is-confirm { color: var(--error-ink); font-weight: 600; }
+  .notice { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px; }
+  .notice p { margin: 0 0 10px; }
+  .notice .actions { border-top: 0; padding-top: 4px; }
+  .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .card-head h2 { margin: 0; }
 
   /* ---------- toast ---------- */
   .toasts { position: fixed; right: 16px; bottom: 16px; display: grid; gap: 8px; z-index: 20; }
@@ -241,7 +250,8 @@
       <div class="toolbar" style="margin:0">
         <label class="sr-only" for="sub-search">Search subscribers</label>
         <input type="search" id="sub-search" placeholder="Search emails">
-        <button class="btn btn-primary" type="button" id="csv">Download list (CSV)</button>
+        <button class="btn btn-primary" type="button" id="email-all">Email everyone</button>
+        <button class="btn" type="button" id="csv">Download list (CSV)</button>
         <a class="btn" id="sheet-link" href="#" target="_blank" rel="noopener">Open the Sheet</a>
       </div>
     </div>
@@ -572,26 +582,108 @@
   });
 
   /* ---------- newsletter ---------- */
-  var subSearch = "";
+  // Gmail's compose window can't take hundreds of addresses, and large BCC blasts are more
+  // likely to be marked as spam, so the list is emailed in groups.
+  var BCC_GROUP = 50;
+  var ORG_EMAIL = "info@hands4unity.org";
+  var subSearch = "", showRemoved = false, groupsOpen = false, confirming = null;
+
+  function activeEmails() {
+    var seen = {};
+    return state.subscribers.filter(function (s) {
+      if (s.removed || !s.email || seen[s.email]) return false;
+      seen[s.email] = true;
+      return true;
+    }).map(function (s) { return s.email; });
+  }
+  function emailGroups() {
+    var all = activeEmails(), groups = [];
+    for (var i = 0; i < all.length; i += BCC_GROUP) groups.push(all.slice(i, i + BCC_GROUP));
+    return groups;
+  }
+  function newsletterCompose(bcc) {
+    var body = "\n\n\n--\nYou're receiving this because you signed up to the Hands 4 Unity newsletter at hands4unity.org.\n" +
+      "To stop receiving these emails, reply with \"unsubscribe\".";
+    return "https://mail.google.com/mail/?" + (state.user ? "authuser=" + encodeURIComponent(state.user) + "&" : "") +
+      "view=cm&fs=1&to=" + encodeURIComponent(ORG_EMAIL) + "&bcc=" + encodeURIComponent(bcc.join(",")) +
+      "&su=" + encodeURIComponent("News from Hands 4 Unity") + "&body=" + encodeURIComponent(body);
+  }
+
   function renderNewsletter() {
     var subs = state.subscribers;
+    var active = activeEmails();
+    var removed = subs.filter(function (s) { return s.removed; });
     var month = Date.now() - 30 * 864e5;
-    var recent = subs.filter(function (s) { return Date.parse(s.received) >= month; }).length;
-    var shown = subs.filter(function (s) { return !subSearch || s.email.toLowerCase().indexOf(subSearch) >= 0; });
-    $("csv").disabled = !subs.length;
-    $("newsletter").innerHTML =
+    var recent = subs.filter(function (s) { return !s.removed && Date.parse(s.received) >= month; }).length;
+    var shown = subs.filter(function (s) {
+      return (showRemoved || !s.removed) && (!subSearch || s.email.indexOf(subSearch) >= 0);
+    });
+    $("csv").disabled = $("email-all").disabled = !active.length;
+
+    var groups = emailGroups();
+    var notice = groupsOpen && groups.length > 1
+      ? '<div class="notice"><p><strong>' + num(active.length) + ' people, sent in ' + groups.length + ' emails of up to ' + BCC_GROUP + '.</strong> ' +
+        'Everyone is in BCC, so nobody can see who else received it. Write the first email, then copy its text into the others.</p>' +
+        '<div class="actions">' + groups.map(function (g, i) {
+          return '<a class="btn" href="' + esc(newsletterCompose(g)) + '" target="_blank" rel="noopener">Email group ' + (i + 1) + ' (' + g.length + ')</a>';
+        }).join("") + '</div></div>'
+      : "";
+
+    $("newsletter").innerHTML = notice +
       '<div class="tiles" style="grid-template-columns:repeat(2,1fr);max-width:560px">' +
-        tile("On the list", num(subs.length), "everyone who has signed up") +
+        tile("On the list", num(active.length), removed.length ? num(removed.length) + " removed" : "everyone who has signed up") +
         tile("Joined recently", num(recent), "in the last 30 days") + '</div>' +
-      '<section class="card">' + (shown.length
-        ? '<div class="subs"><table><thead><tr><th>Email</th><th class="num">Signed up</th></tr></thead><tbody>' +
-          shown.map(function (s) { return '<tr><td><a href="mailto:' + esc(s.email) + '">' + esc(s.email) + '</a></td><td class="num">' + esc(new Date(s.received).toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric" })) + '</td></tr>'; }).join("") +
-          '</tbody></table></div>'
-        : '<p class="empty">' + (subs.length ? "No matches." : "No sign-ups yet.") + '</p>') + '</section>';
+      '<section class="card"><div class="card-head"><h2>Subscribers</h2>' +
+        (removed.length ? '<button type="button" class="link-btn" id="toggle-removed">' + (showRemoved ? "Hide removed" : "Show removed (" + removed.length + ")") + '</button>' : "") +
+      '</div>' + (shown.length
+        ? '<div class="subs"><table><thead><tr><th>Email</th><th class="num">Signed up</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>' +
+          shown.map(function (s) {
+            var action = s.removed
+              ? '<button type="button" class="link-btn" data-unsub="' + esc(s.id) + '" data-removed="false">Add back</button>'
+              : '<button type="button" class="link-btn' + (confirming === s.id ? " is-confirm" : "") + '" data-unsub="' + esc(s.id) + '" data-removed="true">' + (confirming === s.id ? "Confirm remove" : "Remove") + '</button>';
+            return '<tr' + (s.removed ? ' class="is-removed"' : "") + '><td><a href="mailto:' + esc(s.email) + '">' + esc(s.email) + '</a></td>' +
+              '<td class="num">' + esc(new Date(s.received).toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric" })) + '</td>' +
+              '<td>' + action + '</td></tr>';
+          }).join("") + '</tbody></table></div>'
+        : '<p class="empty">' + (subs.length ? "No matches." : "No sign-ups yet.") + '</p>') +
+      '<p class="empty" style="margin:12px 0 0">If someone asks to unsubscribe, click Remove next to their email. They won\'t be included in future emails or the CSV.</p>' +
+      '</section>';
   }
+
+  $("newsletter").addEventListener("click", function (e) {
+    if (e.target.closest("#toggle-removed")) { showRemoved = !showRemoved; renderNewsletter(); return; }
+    var b = e.target.closest("[data-unsub]");
+    if (!b) return;
+    var id = b.getAttribute("data-unsub"), removing = b.getAttribute("data-removed") === "true";
+    if (removing && confirming !== id) {
+      confirming = id;
+      renderNewsletter();
+      setTimeout(function () { if (confirming === id) { confirming = null; renderNewsletter(); } }, 4000);
+      return;
+    }
+    confirming = null;
+    var sub = state.subscribers.filter(function (s) { return s.id === id; })[0];
+    if (sub) sub.removed = removing;
+    renderNewsletter();
+    call("setUnsubscribed", [id], removing).catch(function (err) {
+      if (sub) sub.removed = !removing;
+      renderNewsletter();
+      toastError("Couldn't save that change: " + err.message);
+    });
+  });
   $("sub-search").addEventListener("input", function (e) { subSearch = e.target.value.trim().toLowerCase(); renderNewsletter(); });
+  $("email-all").addEventListener("click", function () {
+    var groups = emailGroups();
+    if (groups.length === 1) window.open(newsletterCompose(groups[0]), "_blank", "noopener");
+    else { groupsOpen = true; renderNewsletter(); }
+  });
   $("csv").addEventListener("click", function () {
-    var lines = ["Email,Signed up"].concat(state.subscribers.map(function (s) {
+    var seen = {};
+    var lines = ["Email,Signed up"].concat(state.subscribers.filter(function (s) {
+      if (s.removed || seen[s.email]) return false;
+      seen[s.email] = true;
+      return true;
+    }).map(function (s) {
       return '"' + s.email.replace(/"/g, '""') + '",' + s.received.slice(0, 10);
     }));
     var a = document.createElement("a");
