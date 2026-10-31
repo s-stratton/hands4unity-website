@@ -47,6 +47,14 @@ version into the Sheet's Extensions → Apps Script editor, then Deploy → Mana
 The URL is `FORM_ENDPOINT` at the top of `js/main.js`. If it is ever emptied, the forms fall
 back to opening the visitor's email app with the message addressed to info@hands4unity.org.
 
+## Admin dashboard
+
+hands4unity.org/admin redirects to a private Google Apps Script page (code in
+`google-apps-script/dashboard/`) that shows website visits from Cloudflare Web Analytics
+alongside form messages and newsletter sign-ups. Only Google accounts on hands4unity.org
+can open it. Its Cloudflare token and Sheet ID are stored in the script's Project Settings →
+Script properties, not in this repository.
+
 ## URLs
 
 Pages keep the same addresses as the old WordPress site

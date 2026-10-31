@@ -27,6 +27,8 @@ YEAR = _dt.date.today().year
 ASSET_VERSION = _dt.date.today().strftime("%Y%m%d")
 # Cloudflare Web Analytics: counts visits without cookies. The token is public by design.
 CF_ANALYTICS_TOKEN = "8e46b1fcd0484569975259df725713fb"
+# Private admin dashboard (google-apps-script/dashboard). Only hands4unity.org Google accounts can open it.
+ADMIN_DASHBOARD_URL = "https://script.google.com/a/macros/hands4unity.org/s/AKfycbyFJANmK3M2iaxzub2dnSivZkAi8sYktb1j94BLJF_fq7NNq1V_bB0I0tcXhXUt_qJq-g/exec"
 
 NAV = [
     ("", "Home"),
@@ -879,6 +881,28 @@ def build_meta_files() -> None:
     (ROOT / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {SITE['url']}/sitemap.xml\n", encoding="utf-8")
 
 
+def build_admin_redirect() -> None:
+    # /admin forwards to the dashboard. Kept out of the sitemap and search results.
+    out = ROOT / "admin" / "index.html"
+    out.parent.mkdir(exist_ok=True)
+    out.write_text(
+        f"""<!doctype html>
+<html lang="en-IE">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex">
+  <title>Hands 4 Unity dashboard</title>
+  <meta http-equiv="refresh" content="0; url={ADMIN_DASHBOARD_URL}">
+</head>
+<body>
+  <p><a href="{ADMIN_DASHBOARD_URL}">Open the Hands 4 Unity dashboard</a></p>
+</body>
+</html>
+""",
+        encoding="utf-8",
+    )
+
+
 def main() -> None:
     os.chdir(ROOT)
     build_home()
@@ -892,6 +916,7 @@ def main() -> None:
     build_privacy()
     build_cookies()
     build_404()
+    build_admin_redirect()
     build_meta_files()
     print(f"Built {len(_written)} pages into {ROOT}")
 
