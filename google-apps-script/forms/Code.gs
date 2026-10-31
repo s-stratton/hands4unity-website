@@ -112,9 +112,10 @@ function clean_(v, max) {
   return String(v == null ? "" : v).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").trim().slice(0, max);
 }
 
-// Stop text like "=HYPERLINK(...)" being treated as a formula in the sheet.
+// Keep values exactly as typed: stop "=HYPERLINK(...)" becoming a formula, and stop
+// numbers like "087 003 0568" losing their leading zero. The ' prefix is hidden in Sheets.
 function safeCell_(v) {
-  return /^[=+\-@]/.test(v) ? "'" + v : v;
+  return /^[=+\-@]/.test(v) || /^[\d\s()\-.]+$/.test(v) ? "'" + v : v;
 }
 
 function reply_(ok, message) {
