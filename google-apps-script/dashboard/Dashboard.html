@@ -174,7 +174,7 @@
   }
 </style>
 </head>
-<body>
+<body data-open="<?= open ?>">
 <header class="topbar">
   <div class="topbar-inner">
     <a class="brand" href="https://hands4unity.org/" target="_blank" rel="noopener"><img src="https://hands4unity.org/assets/favicon.png" alt=""><strong>Hands 4 Unity</strong></a>
@@ -261,6 +261,7 @@
     view: "inbox", filter: "inbox", type: "", search: "",
     items: [], subscribers: [], user: "", sheetUrl: "",
     selected: null, known: null, pending: {},    // pending: id -> status not yet confirmed by the server
+    open: document.body.getAttribute("data-open") || "",   // "Tab|row" from an email link
     days: 30, visits: {}, visitsAt: {},
     lastOk: null, error: false, loading: false
   };
@@ -336,6 +337,14 @@
       state.known = {};
       items.forEach(function (it) { state.known[it.id] = true; });
       state.items = items;
+      if (state.open) {
+        var target = items.filter(function (it) { return it.id.indexOf(state.open + "|") === 0; })[0];
+        state.open = "";
+        if (target) {
+          setFilter(target.status === "archived" ? "archived" : "inbox");
+          select(target.id);
+        }
+      }
       renderAll();
     }).catch(function (err) {
       console.error(err);

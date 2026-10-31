@@ -12,6 +12,8 @@
  */
 
 var NOTIFY_EMAIL = "info@hands4unity.org";
+var ADMIN_URL = "https://hands4unity.org/admin/";   // the private dashboard
+var EMAIL_FORMS = ["contact", "involve", "newsletter"];   // which forms email info@
 var MIN_FILL_MS = 3000;            // faster than this is a bot
 var MAX_PER_10_MIN = 40;           // overall cap, protects the daily email quota
 var MAX_LEN = { name: 120, email: 200, phone: 40, subject: 200, message: 5000, page: 300 };
@@ -63,9 +65,18 @@ function doPost(e) {
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) return reply_(false, "Please enter a valid email address.");
 
-    var sheet = sheetFor_(form);
-    sheet.appendRow([new Date()].concat(form.row(d).map(safeCell_)));
-    notify_(p.form, form, d);
+    // Lock so the row number we read back is the row we just added.
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    var row;
+    try {
+      var sheet = sheetFor_(form);
+      sheet.appendRow([new Date()].concat(form.row(d).map(safeCell_)));
+      row = sheet.getLastRow();
+    } finally {
+      lock.releaseLock();
+    }
+    if (EMAIL_FORMS.indexOf(p.form) >= 0) notify_(p.form, form, d, row);
     return reply_(true);
   } catch (err) {
     console.error(err);
@@ -90,15 +101,44 @@ function sheetFor_(form) {
   return sheet;
 }
 
-function notify_(key, form, d) {
+// Emails info@ about a new submission, with a button that opens it in the dashboard.
+// Reply-To is the sender, so replying to the email answers them directly.
+function notify_(key, form, d, row) {
+  var who = d.name || d.email;
   var subject = key === "newsletter" ? "Newsletter sign-up: " + d.email
     : key === "involve" ? "Get involved: " + d.name
     : "Website message: " + d.subject;
-  var lines = [];
+  var heading = key === "newsletter" ? d.email + " joined the newsletter"
+    : key === "involve" ? d.name + " wants to get involved"
+    : "New message from " + d.name;
+  var link = ADMIN_URL + "?open=" + encodeURIComponent(form.tab + "|" + row);
   var labels = form.headers.slice(1);
-  form.row(d).forEach(function (v, i) { if (v) lines.push(labels[i] + ": " + v); });
-  lines.push("", "Saved in the sheet: " + SpreadsheetApp.getActiveSpreadsheet().getUrl());
-  MailApp.sendEmail({ to: NOTIFY_EMAIL, replyTo: d.email, subject: subject, body: lines.join("\n") });
+  var fields = [];
+  form.row(d).forEach(function (v, i) {
+    if (v && labels[i] !== "Message" && labels[i] !== "Page") fields.push([labels[i], v]);
+  });
+
+  var text = [heading, ""].concat(fields.map(function (f) { return f[0] + ": " + f[1]; }))
+    .concat(d.message ? ["", d.message] : [])
+    .concat(["", "Open it in the dashboard: " + link, "Reply to this email to answer " + who + " directly."]).join("\n");
+
+  var esc = function (v) {
+    return String(v).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; });
+  };
+  var html =
+    '<div style="font-family:Arial,Helvetica,sans-serif;color:#1f1a17;max-width:560px">' +
+    '<h2 style="font-size:20px;margin:0 0 16px">' + esc(heading) + '</h2>' +
+    '<table style="border-collapse:collapse;font-size:14px;margin-bottom:16px">' +
+    fields.map(function (f) {
+      var v = f[0] === "Email" ? '<a href="mailto:' + esc(f[1]) + '" style="color:#b4500d">' + esc(f[1]) + '</a>' : esc(f[1]);
+      return '<tr><td style="padding:4px 16px 4px 0;color:#6b6058;vertical-align:top">' + esc(f[0]) + '</td><td style="padding:4px 0">' + v + '</td></tr>';
+    }).join("") + '</table>' +
+    (d.message ? '<div style="font-size:15px;line-height:1.6;white-space:pre-wrap;background:#fbf1e6;border-radius:8px;padding:14px 16px;margin-bottom:20px">' + esc(d.message) + '</div>' : "") +
+    '<a href="' + esc(link) + '" style="display:inline-block;background:#b4500d;color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;padding:10px 20px;border-radius:999px">Open in the dashboard</a>' +
+    '<p style="font-size:13px;color:#6b6058;margin:20px 0 0">Reply to this email to answer ' + esc(who) + ' directly. Sent from hands4unity.org' + esc(d.page || "") + '.</p>' +
+    '</div>';
+
+  MailApp.sendEmail({ to: NOTIFY_EMAIL, replyTo: d.email, name: "Hands 4 Unity website", subject: subject, body: text, htmlBody: html });
 }
 
 function underRateLimit_() {

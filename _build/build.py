@@ -882,7 +882,8 @@ def build_meta_files() -> None:
 
 
 def build_admin_redirect() -> None:
-    # /admin forwards to the dashboard. Kept out of the sitemap and search results.
+    # /admin forwards to the dashboard, passing on ?open=... from the notification emails.
+    # Kept out of the sitemap and search results.
     out = ROOT / "admin" / "index.html"
     out.parent.mkdir(exist_ok=True)
     out.write_text(
@@ -892,7 +893,8 @@ def build_admin_redirect() -> None:
   <meta charset="utf-8">
   <meta name="robots" content="noindex">
   <title>Hands 4 Unity dashboard</title>
-  <meta http-equiv="refresh" content="0; url={ADMIN_DASHBOARD_URL}">
+  <meta http-equiv="refresh" content="1; url={ADMIN_DASHBOARD_URL}">
+  <script>location.replace("{ADMIN_DASHBOARD_URL}" + location.search);</script>
 </head>
 <body>
   <p><a href="{ADMIN_DASHBOARD_URL}">Open the Hands 4 Unity dashboard</a></p>

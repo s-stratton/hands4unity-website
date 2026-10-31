@@ -28,8 +28,11 @@ var TABS = [
   { tab: "Newsletter", type: "newsletter" }
 ];
 
-function doGet() {
-  return HtmlService.createHtmlOutputFromFile("Dashboard")
+// ?open=Tab|row opens that submission (the links in the notification emails use this).
+function doGet(e) {
+  var page = HtmlService.createTemplateFromFile("Dashboard");
+  page.open = String((e && e.parameter && e.parameter.open) || "").slice(0, 100);
+  return page.evaluate()
     .setTitle("Hands 4 Unity dashboard")
     .addMetaTag("viewport", "width=device-width, initial-scale=1")
     .setFaviconUrl("https://hands4unity.org/assets/favicon.png");
