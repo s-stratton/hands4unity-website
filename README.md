@@ -35,11 +35,17 @@ Then open http://localhost:8000.
 
 ## Forms
 
-The contact, get involved and newsletter forms work without a server.
-By default they open the visitor's email app with the message addressed to info@hands4unity.org.
+The contact, get involved and newsletter forms send to a Google Apps Script web app
+in the info@hands4unity.org Google account. Each submission is saved as a row in the
+"Hands 4 Unity website" Google Sheet (tabs: Messages, Get Involved, Newsletter) and
+emailed to info@hands4unity.org.
 
-To receive submissions directly instead, create a free form at a service such as
-Formspree, then set `FORM_ENDPOINT` at the top of `js/main.js` to its URL.
+The script's code is in `google-apps-script/forms/Code.gs`. To change it, paste the new
+version into the Sheet's Extensions → Apps Script editor, then Deploy → Manage deployments
+→ edit → Version: New version → Deploy. The web app URL stays the same.
+
+The URL is `FORM_ENDPOINT` at the top of `js/main.js`. If it is ever emptied, the forms fall
+back to opening the visitor's email app with the message addressed to info@hands4unity.org.
 
 ## URLs
 

@@ -4,12 +4,14 @@
 
   /*
    * Forms.
-   * Set FORM_ENDPOINT to a form service URL (for example a Formspree form:
-   * "https://formspree.io/f/xxxxxxx") to receive submissions by email.
+   * FORM_ENDPOINT is the Google Apps Script web app in google-apps-script/forms/,
+   * which saves each submission to the charity's Google Sheet and emails info@.
    * While it is empty, forms open the visitor's email app with the message filled in.
    */
-  var FORM_ENDPOINT = "";
+  var FORM_ENDPOINT = "https://script.google.com/macros/s/AKfycbyowOgA_RzHloXGJr2atyE3U9A0sbsAvbOlQSBBWi9CWdAdhBTeGWwmGyGu_NX2Yioy0w/exec";
   var CONTACT_EMAIL = "info@hands4unity.org";
+
+  var pageLoadedAt = Date.now();
 
   var header = document.querySelector(".site-header");
   var toggle = document.querySelector(".nav-toggle");
@@ -157,11 +159,15 @@
       var button = form.querySelector('button[type="submit"]');
       button.disabled = true;
       setStatus("Sending…");
-      var data = new FormData(form);
-      data.set("_subject", msg.subject);
-      fetch(FORM_ENDPOINT, { method: "POST", body: data, headers: { Accept: "application/json" } })
+      // URL-encoded body keeps this a "simple" CORS request, which Apps Script accepts.
+      var data = new URLSearchParams(new FormData(form));
+      data.set("form", form.getAttribute("data-form"));
+      data.set("page", window.location.pathname);
+      data.set("_elapsed", String(Date.now() - pageLoadedAt));
+      fetch(FORM_ENDPOINT, { method: "POST", body: data })
+        .then(function (res) { return res.json(); })
         .then(function (res) {
-          if (!res.ok) throw new Error(res.status);
+          if (!res.ok) throw new Error(res.message);
           form.reset();
           setStatus(form.getAttribute("data-form") === "newsletter"
             ? "Thank you. You're on the list."

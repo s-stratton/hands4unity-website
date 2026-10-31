@@ -782,7 +782,7 @@ def build_privacy() -> None:
     <p>We rely on your consent, which you give when you submit a form, and on our legitimate interest in responding to people who contact us. We never sell your personal data.</p>
 
     <h2>Who we share it with</h2>
-    <p>We only share your data with service providers who help us run our work, such as our email provider, and only as far as needed. We may disclose data where the law requires it, for example in response to a valid request from a public authority.</p>
+    <p>We only share your data with service providers who help us run our work, and only as far as needed. When you send a form on this website, your details are stored in our Google Workspace account (Google Sheets and Gmail), which Google runs on our behalf. We may disclose data where the law requires it, for example in response to a valid request from a public authority.</p>
     <p>This website loads fonts from Google Fonts, which means your browser connects to Google's servers and shares your IP address with them. Our Donate button takes you to GivenGain, which has its own privacy policy.</p>
 
     <h2>How long we keep it</h2>
