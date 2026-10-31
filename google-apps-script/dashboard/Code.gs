@@ -1,8 +1,10 @@
 /**
  * Hands 4 Unity — admin dashboard.
  *
- * A private web page showing website visits (from Cloudflare Web Analytics) alongside
- * form messages and newsletter sign-ups (from the "Hands 4 Unity website" Google Sheet).
+ * A private web page with an inbox of website form submissions (from the
+ * "Hands 4 Unity website" Google Sheet) and website visits (from Cloudflare Web Analytics).
+ * The page polls getInbox() every 30 seconds; read/unread/archived is stored in a "Status"
+ * column in each tab of the Sheet, so everyone sees the same state.
  *
  * A standalone Apps Script project in the info@hands4unity.org account, separate from the
  * forms script so that its access can be limited to hands4unity.org accounts.
@@ -18,7 +20,13 @@
 
 var RANGES = [7, 30, 90];   // Cloudflare allows up to about 13 weeks per query
 var CACHE_SECONDS = 600;
-var RECENT_LIMIT = 10;
+var INBOX_LIMIT = 500;
+var STATUSES = ["unread", "read", "archived"];
+var TABS = [
+  { tab: "Messages", type: "message" },
+  { tab: "Get Involved", type: "involve" },
+  { tab: "Newsletter", type: "newsletter" }
+];
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile("Dashboard")
@@ -27,25 +35,15 @@ function doGet() {
     .setFaviconUrl("https://hands4unity.org/assets/favicon.png");
 }
 
-// Called from the page with google.script.run. Everything returned must be plain JSON.
-function getDashboard(days) {
-  days = RANGES.indexOf(Number(days)) >= 0 ? Number(days) : 30;
-  var props = PropertiesService.getScriptProperties().getProperties();
-  var result = { days: days, generated: new Date().toISOString(), user: Session.getActiveUser().getEmail() };
+// The functions below are called from the page with google.script.run.
+// Everything they return must be plain JSON (no Date objects).
 
-  try {
-    result.visits = getVisits_(props, days);
-  } catch (err) {
-    console.error(err);
-    result.visitsError = String(err.message || err);
-  }
-  try {
-    result.forms = getForms_(props, days);
-  } catch (err) {
-    console.error(err);
-    result.formsError = String(err.message || err);
-  }
-  return result;
+function getVisits(days) {
+  days = RANGES.indexOf(Number(days)) >= 0 ? Number(days) : 30;
+  var out = getVisits_(PropertiesService.getScriptProperties().getProperties(), days);
+  out.days = days;
+  out.generated = new Date().toISOString();
+  return out;
 }
 
 /* ---------- Cloudflare Web Analytics ---------- */
@@ -124,50 +122,113 @@ function isoDate_(d) {
   return Utilities.formatDate(d, "UTC", "yyyy-MM-dd");
 }
 
-/* ---------- Form submissions from the Sheet ---------- */
+/* ---------- Inbox: form submissions from the Sheet ---------- */
 
-function getForms_(props, days) {
-  if (!props.SHEET_ID) throw new Error("Missing script property SHEET_ID");
-  var ss = SpreadsheetApp.openById(props.SHEET_ID);
-  var since = Date.now() - days * 86400000;
-  var read = function (tab) {
-    var sheet = ss.getSheetByName(tab);
-    if (!sheet || sheet.getLastRow() < 2) return { headers: [], rows: [] };
-    var values = sheet.getDataRange().getValues();
-    var headers = values.shift().map(String);
-    var rows = values.filter(function (r) { return r[0] instanceof Date; }).map(function (r) {
+function getInbox() {
+  var ss = spreadsheet_();
+  var items = [], subscribers = [];
+  TABS.forEach(function (t) {
+    var sheet = ss.getSheetByName(t.tab);
+    if (!sheet || sheet.getLastRow() < 2) return;
+    var col = statusColumn_(sheet);
+    var values = sheet.getRange(1, 1, sheet.getLastRow(), Math.max(sheet.getLastColumn(), col)).getValues();
+    var headers = values[0].map(String);
+    for (var i = 1; i < values.length; i++) {
+      var r = values[i];
+      if (!(r[0] instanceof Date)) continue;
       var o = {};
-      headers.forEach(function (h, i) { o[h] = r[i] instanceof Date ? r[i].toISOString() : String(r[i]); });
-      return o;
-    });
-    rows.sort(function (x, y) { return x.Received < y.Received ? 1 : -1; });
-    return { headers: headers, rows: rows };
-  };
-  var summary = function (tab) {
-    var t = read(tab);
-    return {
-      total: t.rows.length,
-      inRange: t.rows.filter(function (r) { return Date.parse(r.Received) >= since; }).length,
-      recent: t.rows.slice(0, RECENT_LIMIT)
-    };
-  };
-  var newsletter = read("Newsletter");
-  return {
-    sheetUrl: ss.getUrl(),
-    messages: summary("Messages"),
-    involve: summary("Get Involved"),
-    newsletter: {
-      total: newsletter.rows.length,
-      inRange: newsletter.rows.filter(function (r) { return Date.parse(r.Received) >= since; }).length,
-      recent: newsletter.rows.slice(0, RECENT_LIMIT),
-      all: newsletter.rows.map(function (r) { return { Received: r.Received, Email: r.Email }; })
+      headers.forEach(function (h, j) { o[h] = r[j]; });
+      var status = String(r[col - 1]);
+      items.push({
+        id: t.tab + "|" + (i + 1) + "|" + r[0].getTime(),
+        type: t.type,
+        received: r[0].toISOString(),
+        name: str_(o.Name),
+        email: str_(o.Email),
+        phone: str_(o.Phone),
+        subject: str_(o.Subject),
+        message: str_(o.Message),
+        interests: str_(o["Interested in"]),
+        page: str_(o.Page),
+        status: STATUSES.indexOf(status) >= 0 ? status : "unread"
+      });
+      if (t.type === "newsletter") subscribers.push({ email: str_(o.Email), received: r[0].toISOString() });
     }
+  });
+  var newest = function (x, y) { return x.received < y.received ? 1 : -1; };
+  items.sort(newest);
+  subscribers.sort(newest);
+  return {
+    user: Session.getActiveUser().getEmail(),
+    sheetUrl: ss.getUrl(),
+    generated: new Date().toISOString(),
+    items: items.slice(0, INBOX_LIMIT),
+    subscribers: subscribers
   };
+}
+
+// ids come from getInbox: "Tab|row|receivedMillis". Rows can move if someone edits the
+// Sheet, so each id is checked against its timestamp and looked up again if it has moved.
+function setStatus(ids, status) {
+  if (STATUSES.indexOf(status) < 0) throw new Error("Unknown status " + status);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var ss = spreadsheet_();
+    var byTab = {};
+    (ids || []).forEach(function (id) {
+      var p = String(id).split("|");
+      (byTab[p[0]] = byTab[p[0]] || []).push({ row: Number(p[1]), ms: Number(p[2]) });
+    });
+    Object.keys(byTab).forEach(function (tab) {
+      if (!TABS.some(function (t) { return t.tab === tab; })) return;
+      var sheet = ss.getSheetByName(tab);
+      if (!sheet || sheet.getLastRow() < 2) return;
+      var col = statusColumn_(sheet);
+      var n = sheet.getLastRow();
+      var times = sheet.getRange(1, 1, n, 1).getValues().map(function (r) { return r[0] instanceof Date ? r[0].getTime() : null; });
+      var statusRange = sheet.getRange(1, col, n, 1);
+      var statuses = statusRange.getValues();
+      byTab[tab].forEach(function (ref) {
+        var row = times[ref.row - 1] === ref.ms ? ref.row : times.indexOf(ref.ms) + 1;
+        if (row > 1) statuses[row - 1][0] = status;
+      });
+      statusRange.setValues(statuses);
+    });
+  } finally {
+    lock.releaseLock();
+  }
+  return true;
+}
+
+function spreadsheet_() {
+  var id = PropertiesService.getScriptProperties().getProperty("SHEET_ID");
+  if (!id) throw new Error("Missing script property SHEET_ID");
+  return SpreadsheetApp.openById(id);
+}
+
+// The forms script writes the submission columns; this adds a "Status" column after them.
+// An empty Status means unread.
+function statusColumn_(sheet) {
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
+  var i = headers.indexOf("Status");
+  if (i >= 0) return i + 1;
+  sheet.getRange(1, lastCol + 1).setValue("Status").setFontWeight("bold");
+  return lastCol + 1;
+}
+
+function str_(v) {
+  return v instanceof Date ? v.toISOString() : String(v == null ? "" : v);
 }
 
 // Run once from the editor to grant permissions and check the settings work.
 function setup() {
-  var data = getDashboard(7);
-  console.log(data.visitsError || ("Visits OK: " + data.visits.visits + " in the last 7 days"));
-  console.log(data.formsError || ("Sheet OK: " + data.forms.messages.total + " messages"));
+  var inbox = getInbox();
+  console.log("Sheet OK: " + inbox.items.length + " items, " + inbox.subscribers.length + " newsletter sign-ups");
+  try {
+    console.log("Visits OK: " + getVisits(7).visits + " in the last 7 days");
+  } catch (err) {
+    console.log("Visits failed: " + err.message);
+  }
 }
