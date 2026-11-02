@@ -19,7 +19,7 @@ from content import (
     FINANCIALS_2022, GET_INVOLVED_BENEFITS, MISSION, OBJECTIVE, SERVICES, SITE,
     SUPPORTERS, TEAM_BOARD, TEAM_REPS, VISION,
 )
-from icons import icon, shamrock
+from icons import icon
 from projects import BY_SLUG, PROJECTS
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -51,10 +51,11 @@ def link(R: str, href: str) -> str:
     return R + href if href else (R or "./")
 
 
-def img(R: str, path: str, alt: str = "", cls: str = "", eager: bool = False, sizes: str = "") -> str:
+def img(R: str, path: str, alt: str = "", cls: str = "", eager: bool = False, pos: str = "") -> str:
     loading = 'fetchpriority="high"' if eager else 'loading="lazy" decoding="async"'
     c = f' class="{cls}"' if cls else ""
-    return f'<img src="{R}assets/img/{path}" alt="{e(alt)}"{c} {loading}>'
+    style = f' style="object-position:{pos}"' if pos else ""
+    return f'<img src="{R}assets/img/{path}" alt="{e(alt)}"{c}{style} {loading}>'
 
 
 def logo(R: str) -> str:
@@ -84,59 +85,76 @@ def address_html(sep: str = "<br>") -> str:
     return sep.join(e(line) for line in SITE["address"])
 
 
-def btn(R: str, label: str, href: str, kind: str = "primary", ic: str | None = "arrow-right", external: bool = False) -> str:
+def btn(R: str, label: str, href: str, kind: str = "primary", ic: str | None = None, external: bool = False) -> str:
+    """Pill button. kind: primary, secondary, light or outline-light (the last two sit on photos)."""
     ext = ' target="_blank" rel="noopener"' if external else ""
-    i = icon(ic) if ic else ""
-    return f'<a class="btn btn-{kind}" href="{link(R, href)}"{ext}><span>{e(label)}</span>{i}</a>'
+    return f'<a class="btn btn-{kind}" href="{link(R, href)}"{ext}><span>{e(label)}</span>{icon(ic) if ic else ""}</a>'
 
 
-def section_head(eyebrow: str, title: str, intro: str = "", center: bool = False) -> str:
-    c = " section-head--center" if center else ""
-    intro_html = f'<p class="lead">{intro}</p>' if intro else ""
-    return f'<div class="section-head{c}"><p class="eyebrow">{e(eyebrow)}</p><h2>{title}</h2>{intro_html}</div>'
+def more_link(R: str, label: str, href: str) -> str:
+    return f'<a class="more-link" href="{link(R, href)}">{e(label)} {icon("arrow-right")}</a>'
+
+
+def section_head(title: str, intro: str = "", aside: str = "") -> str:
+    intro_html = f'<p>{intro}</p>' if intro else ""
+    return f'<div class="section-head"><div><h2>{title}</h2>{intro_html}</div>{aside}</div>'
 
 
 def project_card(R: str, p: dict, heading: str = "h3") -> str:
     kind = p["kind"].lower()
+    label = "Running now" if p.get("running") else p["kind"]
     return f"""
 <article class="card" data-kind="{kind}">
   <a class="card-link" href="{R}projects/{p['slug']}/">
     <div class="card-media">{img(R, p['card'], '')}</div>
-    <div class="card-body">
-      <p class="meta"><span class="tag tag-{kind}">{e(p['kind'])}</span><span>{e(p['when'])}</span></p>
-      <{heading} class="card-title">{e(p['title'])}</{heading}>
-      <p>{e(p['excerpt'])}</p>
-      <span class="link-arrow">Read more {icon('arrow-right')}</span>
-    </div>
+    <p class="card-meta"><span class="tag{' tag--running' if p.get('running') else ''}">{e(label)}</span>{e(p['when'])}</p>
+    <{heading} class="card-title">{e(p['title'])}</{heading}>
+    <p class="card-excerpt">{e(p['excerpt'])}</p>
   </a>
 </article>"""
 
 
-def page_hero(R: str, title: str, crumbs: list[tuple[str, str]], intro: str = "", eyebrow: str = "") -> str:
+def help_card(R: str, p: dict) -> str:
+    """A programme that is running now, with the facts people need to decide and a way to sign up."""
+    url = f"{R}projects/{p['slug']}/"
+    facts = "".join(f"<div><dt>{e(k)}</dt><dd>{e(v)}</dd></div>" for k, v in p["summary"])
+    label, href = p["action"]
+    return f"""
+<article class="help-card">
+  <a class="help-media" href="{url}" tabindex="-1" aria-hidden="true">{img(R, p['card'], '')}</a>
+  <div class="help-body">
+    <h3><a href="{url}">{e(p['title'])}</a></h3>
+    <p>{e(p['excerpt'])}</p>
+    <dl class="help-facts">{facts}</dl>
+    <div class="help-actions">{btn(R, label, href)}{more_link(R, 'More details', f"projects/{p['slug']}/")}</div>
+  </div>
+</article>"""
+
+
+def page_head(R: str, title: str, crumbs: list[tuple[str, str]], intro: str = "", meta: str = "") -> str:
     trail = "".join(f'<li><a href="{link(R, h)}">{e(t)}</a></li>' for h, t in crumbs)
-    eb = f'<p class="eyebrow">{e(eyebrow)}</p>' if eyebrow else ""
     intro_html = f'<p class="lead">{intro}</p>' if intro else ""
     return f"""
-<section class="page-hero">
+<section class="page-head">
   <div class="container">
     <nav class="breadcrumb" aria-label="Breadcrumb"><ol><li><a href="{link(R, '')}">Home</a></li>{trail}<li aria-current="page">{e(title)}</li></ol></nav>
-    {eb}<h1>{e(title)}</h1>{intro_html}
+    <h1>{e(title)}</h1>
+    {meta}{intro_html}
   </div>
-  {shamrock('hero-shamrock')}
 </section>"""
 
 
-def donate_band(R: str) -> str:
+def get_involved_band(R: str) -> str:
     return f"""
-<section class="donate-band">
-  <div class="container donate-inner">
+<section class="section section--sand">
+  <div class="container band">
     <div>
-      <h2>We need your help</h2>
-      <p>Hands 4 Unity relies on the generosity of individuals to do our work. If you would like to support our causes, please consider donating.</p>
+      <h2>Get involved</h2>
+      <p>Volunteer at our events, share your skills as a mentor, partner with us or make a donation. There is a place for everyone at Hands 4 Unity.</p>
     </div>
-    <div class="donate-actions">
-      {btn(R, 'Donate', SITE['donate'], 'primary', 'heart', external=True)}
-      {btn(R, 'Get involved', 'get-involved/', 'ghost-dark')}
+    <div class="actions">
+      {btn(R, 'Get involved', 'get-involved/')}
+      {btn(R, 'Donate', SITE['donate'], 'secondary', 'heart', external=True)}
     </div>
   </div>
 </section>"""
@@ -153,7 +171,7 @@ def consent_html(R: str) -> str:
 def form_tail(label: str) -> str:
     return f"""
   <p class="hp" aria-hidden="true"><label>Leave this field empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label></p>
-  <button class="btn btn-primary" type="submit"><span>{e(label)}</span>{icon('arrow-right')}</button>
+  <button class="btn btn-primary" type="submit"><span>{e(label)}</span></button>
   <p class="form-status" role="status" aria-live="polite"></p>"""
 
 
@@ -180,7 +198,7 @@ def layout(path: str, title: str, description: str, body: str, active: str = "",
   <title>{e(full_title)}</title>
   <meta name="description" content="{e(description)}">
   <link rel="canonical" href="{canonical}">
-  <meta name="theme-color" content="#1f1a17">
+  <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="{R}assets/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="{R}assets/apple-touch-icon.png">
   <meta property="og:type" content="website">
@@ -192,19 +210,13 @@ def layout(path: str, title: str, description: str, body: str, active: str = "",
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{R}css/styles.css?v={ASSET_VERSION}">
   <script defer src="{R}js/main.js?v={ASSET_VERSION}"></script>
   <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{{"token": "{CF_ANALYTICS_TOKEN}"}}'></script>
 </head>
 <body class="{body_class}">
 <a class="skip-link" href="#main">Skip to content</a>
-<div class="topbar">
-  <div class="container topbar-inner">
-    <p><a href="tel:{SITE['phone_tel']}">{icon('phone')}{SITE['phone_display']}</a><a href="mailto:{SITE['email']}">{icon('mail')}{SITE['email']}</a></p>
-    {socials('socials socials--small')}
-  </div>
-</div>
 <header class="site-header">
   <div class="container header-inner">
     <a class="brand" href="{link(R, '')}" aria-label="Hands 4 Unity home">{logo(R)}</a>
@@ -223,7 +235,7 @@ def layout(path: str, title: str, description: str, body: str, active: str = "",
 <footer class="site-footer">
   <div class="container footer-grid">
     <div class="footer-brand">
-      <a class="brand brand--light" href="{link(R, '')}" aria-label="Hands 4 Unity home">{footer_logo(R)}</a>
+      <a class="brand" href="{link(R, '')}" aria-label="Hands 4 Unity home">{footer_logo(R)}</a>
       <p>A support network for women and families of all backgrounds, in Drogheda, across Ireland and abroad.</p>
       {socials()}
     </div>
@@ -277,113 +289,63 @@ def layout(path: str, title: str, description: str, body: str, active: str = "",
 
 def build_home() -> None:
     R = ""
-    current = [BY_SLUG[s] for s in ("coaching-and-mentoring-for-job-seekers", "tuesdays-sewing-workshop-in-english", "kids-can-code-summer-camp-2025")]
-    recent = [BY_SLUG[s] for s in ("taste-of-all-nations-2025", "africa-day-2025", "inaugural-taste-of-all-nations")]
-    services = "".join(
-        f'<li class="feature">{icon(ic)}<h3>{e(t)}</h3><p>{e(d)}</p></li>' for ic, t, d in SERVICES
-    )
+    running = [p for p in PROJECTS if p.get("running")]
+    events = [BY_SLUG[s] for s in ("taste-of-all-nations-2025", "africa-day-2025", "inaugural-taste-of-all-nations")]
     founder = TEAM_BOARD[0]
-    supporters = "".join(f"<li>{e(s)}</li>" for s in SUPPORTERS)
+    supporters = "".join(f"<li>{img(R, logo, name)}</li>" for name, logo in SUPPORTERS)
 
     body = f"""
 <section class="hero">
   <div class="container hero-grid">
     <div class="hero-copy">
-      <p class="eyebrow">Drogheda &middot; Co. Louth &middot; Ireland</p>
-      <h1>Empowering women, <em>uniting</em> communities.</h1>
-      <p class="lead">Hands 4 Unity is a support network for women and families of all backgrounds, in Ireland and abroad. We help women find work, learn new skills and build a sense of belonging.</p>
-      <div class="hero-actions">
-        {btn(R, 'Learn about us', 'about-us/')}
-        {btn(R, 'See our projects', 'projects/', 'ghost', None)}
-      </div>
-    </div>
-    <div class="hero-media">
-      <figure class="hero-photo hero-photo--main">{img(R, 'projects/toan-2025/dancers.jpg', 'Dancers in traditional dress performing at Taste of All Nations 2025', eager=True)}</figure>
-      <figure class="hero-photo hero-photo--small">{img(R, 'projects/sewing/cover.jpg', 'Two women at a sewing machine during the Sewing Workshop in English', eager=True)}</figure>
-      <div class="hero-badge">{shamrock()}<span>Care knows<br>no borders</span></div>
-    </div>
-  </div>
-</section>
-
-<section class="section section--peach">
-  <div class="container split">
-    <figure class="split-media">{img(R, 'projects/coaching/cover.jpg', 'A mentor and a job seeker working through a CV together')}</figure>
-    <div class="split-copy">
-      <p class="eyebrow">Coaching &amp; mentoring</p>
-      <h2>Looking for a job in Ireland and not sure where to start?</h2>
-      <p class="lead">You don't have to do it alone.</p>
-      <p>We support migrant and Irish women who want to enter the workforce, return to employment or change careers, with real, practical guidance every step of the way.</p>
-      <ul class="ticks">
-        <li>One-to-one coaching to build your confidence</li>
-        <li>CV clinics and interview preparation</li>
-        <li>Mentors who know the Irish job market</li>
-      </ul>
+      <h1>Empowering women, uniting communities</h1>
+      <p class="lead">A support network in Drogheda for women and families of all backgrounds. We help women find work, learn new skills and build a sense of belonging.</p>
       <div class="actions">
-        {btn(R, 'Book a free session', 'contact-us/?subject=Coaching%20appointment')}
-        {btn(R, 'Find out more', 'projects/coaching-and-mentoring-for-job-seekers/', 'ghost', None)}
+        {btn(R, 'How we can help', '#help')}
+        {btn(R, 'Get involved', 'get-involved/', 'secondary')}
       </div>
     </div>
+    <figure class="hero-photo">{img(R, 'general/dancers-stage.jpg', 'Women in colourful traditional dress dancing on stage at a Hands 4 Unity event', eager=True, pos='50% 40%')}</figure>
+  </div>
+</section>
+
+<section class="section" id="help">
+  <div class="container">
+    {section_head('How we can help', 'Programmes running now in Drogheda. Everyone is welcome.', more_link(R, 'All projects', 'projects/'))}
+    <div class="help">{''.join(help_card(R, p) for p in running)}</div>
+  </div>
+</section>
+
+<section class="section section--sand">
+  <div class="container split">
+    <div>
+      <h2>Who we are</h2>
+      <p class="lead">{e(MISSION[0])}</p>
+      <p class="founder-note">
+        {img(R, founder['photo'], '')}
+        <span><strong>Founded by {e(founder['name'])}</strong>Recognised with the Outstanding Individual Award for Louth in 2023</span>
+      </p>
+      <div class="actions">{btn(R, 'About us and our team', 'about-us/', 'secondary')}</div>
+    </div>
+    <figure class="split-media">{img(R, 'projects/africa-day-2025/gallery-03.jpg', 'A large group of guests in colourful dress at Africa Day 2025 in Drogheda')}</figure>
   </div>
 </section>
 
 <section class="section">
   <div class="container">
-    {section_head('What we do', 'Networking, education, job access and social support', e(OBJECTIVE), center=True)}
-    <ul class="features">{services}</ul>
+    {section_head('Community events', 'Festivals and celebrations that bring Drogheda’s cultures together.', more_link(R, 'See all projects', 'projects/'))}
+    <div class="cards">{''.join(project_card(R, p) for p in events)}</div>
   </div>
 </section>
 
-<section class="section section--cream">
+<section class="supporters" aria-labelledby="supporters-title">
   <div class="container">
-    <div class="section-head-row">
-      {section_head('Running now', 'Current programmes', 'Hands 4 Unity works with Drogheda-based women from diverse backgrounds to improve their experience of community integration.')}
-    </div>
-    <div class="cards">{''.join(project_card(R, p) for p in current)}</div>
+    <h2 id="supporters-title">With thanks to our funders, sponsors and partners</h2>
+    <ul class="logos">{supporters}</ul>
   </div>
 </section>
 
-<section class="quote-band">
-  <div class="container">
-    {shamrock('quote-mark')}
-    <blockquote>
-      <p>We bring women and families of all races together in an environment where care knows no borders, love has no divides, and help has no differentiation.</p>
-      <footer>Our mission</footer>
-    </blockquote>
-  </div>
-</section>
-
-<section class="section">
-  <div class="container">
-    <div class="section-head-row">
-      {section_head('Community events', 'Celebrating the cultures that make our community')}
-      {btn(R, 'View all projects', 'projects/', 'ghost')}
-    </div>
-    <div class="cards">{''.join(project_card(R, p) for p in recent)}</div>
-  </div>
-</section>
-
-<section class="section section--cream">
-  <div class="container split split--reverse">
-    <figure class="split-media split-media--portrait">{img(R, founder['photo'], founder['name'])}</figure>
-    <div class="split-copy">
-      <p class="eyebrow">Meet our founder</p>
-      <h2>{e(founder['name'])}</h2>
-      <p class="role">{e(founder['role'])}</p>
-      <p>{e(founder['bio'][0])}</p>
-      <p>Ejiro leads a board and committee of volunteers from across Drogheda's communities, including Ireland, Nigeria, India and the Philippines.</p>
-      <div class="actions">{btn(R, 'Meet the team', 'about-us/#team')}</div>
-    </div>
-  </div>
-</section>
-
-<section class="section section--tight">
-  <div class="container">
-    <p class="supporters-title">With thanks to our funders, sponsors and partners</p>
-    <ul class="supporters">{supporters}</ul>
-  </div>
-</section>
-
-{donate_band(R)}
+{get_involved_band(R)}
 """
     layout(
         "index.html", SITE["name"],
@@ -418,49 +380,43 @@ def team_card(R: str, m: dict, idx: str, featured: bool = False) -> str:
 
 def build_about() -> None:
     R = "../"
-    services = "".join(f'<li class="feature">{icon(ic)}<h3>{e(t)}</h3><p>{e(d)}</p></li>' for ic, t, d in SERVICES)
     mission = "".join(f"<p>{e(p)}</p>" for p in MISSION)
+    services = "".join(f'<li><h3>{e(t)}</h3><p>{e(d)}</p></li>' for _ic, t, d in SERVICES)
     founder = team_card(R, TEAM_BOARD[0], "0", featured=True)
     board = "".join(team_card(R, m, f"b{i}") for i, m in enumerate(TEAM_BOARD[1:], 1))
     reps = "".join(team_card(R, m, f"r{i}") for i, m in enumerate(TEAM_REPS))
+    vision_first, vision_rest = VISION.split(". ")[0] + ".", ". ".join(VISION.split(". ")[1:])
     body = f"""
-{page_hero(R, 'About Us', [], 'A support network uniting women and families of all races, in Drogheda and beyond.', 'Who we are')}
+{page_head(R, 'About Us', [], 'A support network uniting women and families of all races, in Drogheda and beyond.')}
 
 <section class="section">
   <div class="container split">
-    <div class="split-copy">
-      <p class="eyebrow">Our vision</p>
-      <h2>A community where care knows no borders</h2>
-      <p class="lead">{e(VISION.split('. ')[0])}.</p>
-      <p>{e('. '.join(VISION.split('. ')[1:]))}</p>
+    <div>
+      <h2>Our vision</h2>
+      <p class="lead">{e(vision_first)}</p>
+      <p>{e(vision_rest)}</p>
     </div>
-    <div class="photo-pair">
-      <figure>{img(R, 'general/art-exhibition.jpg', 'Women in colourful dress at a Hands 4 Unity art exhibition')}</figure>
-      <figure>{img(R, 'general/culture-night.jpg', 'A woman in a floral crown at Culture Night')}</figure>
-    </div>
+    <figure class="split-media">{img(R, 'general/art-exhibition.jpg', 'Women in colourful dress at a Hands 4 Unity art exhibition')}</figure>
   </div>
 </section>
 
-<section class="section section--ink">
+<section class="section section--sand">
   <div class="container split split--top">
-    <div>
-      <p class="eyebrow eyebrow--light">Our mission</p>
-      <h2>Empowering women to become change-makers and leaders</h2>
-    </div>
-    <div class="prose prose--light">{mission}</div>
+    <h2>Our mission</h2>
+    <div class="prose">{mission}</div>
   </div>
 </section>
 
 <section class="section">
   <div class="container">
-    {section_head('Our objective', 'What we do', e(OBJECTIVE), center=True)}
-    <ul class="features">{services}</ul>
+    {section_head('What we do', e(OBJECTIVE))}
+    <ul class="services">{services}</ul>
   </div>
 </section>
 
-<section class="section section--cream" id="team">
+<section class="section section--sand" id="team">
   <div class="container">
-    {section_head('Meet our team', 'The people behind Hands 4 Unity', 'Our board and committee members come from many of the communities we serve, and give their time as volunteers.', center=True)}
+    {section_head('Our team', 'Our board and committee members come from many of the communities we serve, and give their time as volunteers.')}
     <ul class="team team--featured">{founder}</ul>
     <h3 class="team-group">Board of directors &amp; officers</h3>
     <ul class="team">{board}</ul>
@@ -469,7 +425,7 @@ def build_about() -> None:
   </div>
 </section>
 
-{donate_band(R)}
+{get_involved_band(R)}
 """
     layout("about-us/index.html", "About Us",
            "Our vision, mission and the team behind Hands 4 Unity, a Drogheda support network for women and families of all backgrounds.",
@@ -480,7 +436,7 @@ def build_projects_index() -> None:
     R = "../"
     cards = "".join(project_card(R, p, "h2") for p in PROJECTS)
     body = f"""
-{page_hero(R, 'Our Projects', [], 'Programmes and events that help women build skills, find work and celebrate the cultures of our community.', 'What we do')}
+{page_head(R, 'Our Projects', [], 'Programmes and events that help women build skills, find work and celebrate the cultures of our community.')}
 <section class="section">
   <div class="container">
     <div class="filters" role="group" aria-label="Filter projects">
@@ -491,7 +447,7 @@ def build_projects_index() -> None:
     <div class="cards" data-filterable>{cards}</div>
   </div>
 </section>
-{donate_band(R)}
+{get_involved_band(R)}
 """
     layout("projects/index.html", "Projects",
            "Hands 4 Unity programmes and community events, from coaching for job seekers and sewing workshops to Taste of All Nations and Africa Day.",
@@ -501,13 +457,25 @@ def build_projects_index() -> None:
 def build_project(p: dict) -> None:
     R = "../../"
     sections = []
+    flip = False
     for i, s in enumerate(p["sections"]):
-        rev = " split--reverse" if i % 2 else ""
+        if i == 0 and s["image"] == p["card"]:
+            # The photo under the title is the same image, so the opening section is text only.
+            sections.append(f"""
+<section class="section">
+  <div class="container split split--top">
+    <h2>{e(s['heading'])}</h2>
+    <div class="prose">{s['body']}</div>
+  </div>
+</section>""")
+            continue
+        rev = " split--reverse" if flip else ""
+        flip = not flip
         sections.append(f"""
-<section class="section{' section--cream' if i % 2 else ''}">
+<section class="section">
   <div class="container split{rev}">
     <figure class="split-media">{img(R, s['image'], s['heading'])}</figure>
-    <div class="split-copy prose">
+    <div class="prose">
       <h2>{e(s['heading'])}</h2>
       {s['body']}
     </div>
@@ -520,7 +488,7 @@ def build_project(p: dict) -> None:
             f'<div class="fact">{icon(ic)}<dt>{e(label)}</dt><dd>{e(val)}</dd></div>' for ic, label, val in p["details"]
         )
         facts = f"""
-<section class="section section--tight">
+<section class="section">
   <div class="container">
     <div class="facts-card">
       <h2>{e(p.get('details_title', 'Details'))}</h2>
@@ -538,7 +506,7 @@ def build_project(p: dict) -> None:
         gallery = f"""
 <section class="section">
   <div class="container">
-    {section_head('Gallery', 'Photos from the day')}
+    {section_head('Photos from the day')}
     <ul class="gallery" data-gallery>{shots}</ul>
   </div>
 </section>"""
@@ -546,12 +514,12 @@ def build_project(p: dict) -> None:
     cta = ""
     if p.get("cta"):
         c = p["cta"]
-        second = btn(R, c["secondary"][0], c["secondary"][1], "ghost-dark", "phone") if c.get("secondary") else ""
+        second = btn(R, c["secondary"][0], c["secondary"][1], "secondary", "phone") if c.get("secondary") else ""
         cta = f"""
-<section class="cta-band">
-  <div class="container cta-inner">
+<section class="section section--sand">
+  <div class="container band">
     <div><h2>{e(c['title'])}</h2><p>{e(c['text'])}</p></div>
-    <div class="donate-actions">{btn(R, c['label'], c['href'], 'primary')}{second}</div>
+    <div class="actions">{btn(R, c['label'], c['href'])}{second}</div>
   </div>
 </section>"""
 
@@ -560,35 +528,23 @@ def build_project(p: dict) -> None:
         others += [o for o in PROJECTS if o["slug"] != p["slug"] and o not in others][: 3 - len(others)]
     more = "".join(project_card(R, o) for o in others)
 
+    label = "Running now" if p.get("running") else p["kind"]
     meta = (
-        f'<p class="project-meta"><span class="tag tag-{p["kind"].lower()}">{e(p["kind"])}</span>'
+        f'<p class="project-meta"><span class="tag{" tag--running" if p.get("running") else ""}">{e(label)}</span>'
         f'<span>{icon("calendar")}{e(p["when"])}</span><span>{icon("pin")}{e(p["where"])}</span></p>'
     )
-    hero = f"""
-<section class="page-hero page-hero--project">
-  <div class="container">
-    <nav class="breadcrumb" aria-label="Breadcrumb"><ol><li><a href="{R}">Home</a></li><li><a href="{R}projects/">Projects</a></li><li aria-current="page">{e(p['title'])}</li></ol></nav>
-    <h1>{e(p['title'])}</h1>
-    {meta}
-    <p class="lead">{e(p['excerpt'])}</p>
-  </div>
-  {shamrock('hero-shamrock')}
-</section>
-<div class="container project-cover">{img(R, p['cover'], p['title'], eager=True)}</div>"""
 
     body = f"""
-{hero}
+{page_head(R, p['title'], [('projects/', 'Projects')], e(p['excerpt']), meta)}
+<div class="container project-photo">{img(R, p['card'], p['title'], eager=True, pos='50% 40%')}</div>
 {''.join(sections[:1])}
 {facts}
 {''.join(sections[1:])}
 {gallery}
 {cta}
-<section class="section section--cream">
+<section class="section">
   <div class="container">
-    <div class="section-head-row">
-      {section_head('Keep exploring', 'More projects')}
-      {btn(R, 'All projects', 'projects/', 'ghost')}
-    </div>
+    {section_head('More projects', '', more_link(R, 'All projects', 'projects/'))}
     <div class="cards">{more}</div>
   </div>
 </section>
@@ -598,50 +554,47 @@ def build_project(p: dict) -> None:
 
 def build_get_involved() -> None:
     R = "../"
-    benefits = "".join(f'<li class="feature">{icon(ic)}<h3>{e(t)}</h3><p>{e(d)}</p></li>' for ic, t, d in GET_INVOLVED_BENEFITS)
+    benefits = "".join(f'<li><h3>{e(t)}</h3><p>{e(d)}</p></li>' for _ic, t, d in GET_INVOLVED_BENEFITS)
+    ways = [
+        ("Volunteer", "Help out at events like Taste of All Nations, or share your skills as a sewing tutor, language mentor or career mentor.",
+         "Sign up below", "#join", "projects/toan-2025/volunteers.jpg", "Hands 4 Unity volunteers at Taste of All Nations 2025", False),
+        ("Donate", "We rely on the generosity of individuals. Every donation helps us run free coaching, workshops and community events.",
+         "Donate on GivenGain", SITE["donate"], "projects/toan-2025/dancers.jpg", "Dancers performing at Taste of All Nations 2025", True),
+        ("Partner with us", "Community groups, businesses and public bodies can sponsor an event, host a workshop or work with us on new projects.",
+         "Talk to us", "contact-us/?subject=Partnership", "projects/africa-day-2025/gallery-06.jpg", "Community leaders at Africa Day 2025", False),
+    ]
+    way_cards = "".join(f"""
+      <article class="card">
+        <a class="card-link" href="{link(R, href)}"{' target="_blank" rel="noopener"' if ext else ''}>
+          <div class="card-media">{img(R, photo, alt)}</div>
+          <h3 class="card-title">{e(t)}</h3>
+          <p class="card-excerpt card-excerpt--full">{e(d)}</p>
+          <span class="more-link">{e(cta)} {icon('external' if ext else 'arrow-right')}</span>
+        </a>
+      </article>""" for t, d, cta, href, photo, alt, ext in ways)
     body = f"""
-{page_hero(R, 'Get Involved', [], 'Join our network, volunteer your time or support our work. There is a place for everyone at Hands 4 Unity.', 'Make a difference')}
+{page_head(R, 'Get Involved', [], 'Join our network, volunteer your time or support our work. There is a place for everyone at Hands 4 Unity.')}
 
 <section class="section">
   <div class="container">
-    {section_head('Why join us', 'What our network offers', center=True)}
-    <ul class="features features--five">{benefits}</ul>
+    {section_head('Ways to help')}
+    <div class="cards">{way_cards}</div>
   </div>
 </section>
 
-<section class="section section--cream">
+<section class="section section--sand">
   <div class="container">
-    {section_head('Ways to help', 'Three ways to support our community', center=True)}
-    <div class="ways">
-      <article class="way">
-        <span class="way-icon">{icon('users')}</span>
-        <h3>Volunteer</h3>
-        <p>Help out at events like Taste of All Nations, or share your skills as a sewing tutor, language mentor or career mentor.</p>
-        <a class="link-arrow" href="#join">Sign up below {icon('arrow-right')}</a>
-      </article>
-      <article class="way way--accent">
-        <span class="way-icon">{icon('heart')}</span>
-        <h3>Donate</h3>
-        <p>We rely on the generosity of individuals. Every donation helps us run free coaching, workshops and community events.</p>
-        <a class="link-arrow" href="{SITE['donate']}" target="_blank" rel="noopener">Donate on GivenGain {icon('external')}</a>
-      </article>
-      <article class="way">
-        <span class="way-icon">{icon('globe')}</span>
-        <h3>Partner with us</h3>
-        <p>Community groups, businesses and public bodies can sponsor an event, host a workshop or work with us on new projects.</p>
-        <a class="link-arrow" href="{R}contact-us/?subject=Partnership">Talk to us {icon('arrow-right')}</a>
-      </article>
-    </div>
+    {section_head('What our network offers', 'When you join Hands 4 Unity, you get:')}
+    <ul class="services services--five">{benefits}</ul>
   </div>
 </section>
 
 <section class="section" id="join">
   <div class="container form-layout">
     <div class="form-intro">
-      <p class="eyebrow">Join our network</p>
-      <h2>Get involved</h2>
-      <p>Tell us a little about yourself and how you would like to take part. A member of our team will be in touch.</p>
-      <figure class="form-photo">{img(R, 'projects/toan-2025/volunteers.jpg', 'Hands 4 Unity volunteers at Taste of All Nations 2025')}</figure>
+      <h2>Join our network</h2>
+      <p class="lead">Tell us a little about yourself and how you would like to take part. A member of our team will be in touch.</p>
+      <figure class="form-photo">{img(R, 'projects/feile-an-paisti/cover.jpg', 'Hands 4 Unity volunteers waving at Féile an Páistí')}</figure>
     </div>
     <form class="form card-surface" data-form="involve" novalidate>
       <input type="hidden" name="subject" value="Get involved enquiry">
@@ -675,29 +628,23 @@ def build_get_involved() -> None:
 def build_contact() -> None:
     R = "../"
     body = f"""
-{page_hero(R, 'Contact Us', [], 'We would love to hear from you. Get in touch by phone, email or the form below.', 'Get in touch')}
-
-<section class="section section--tight">
-  <div class="container contact-cards">
-    <a class="contact-card" href="{SITE['maps']}" target="_blank" rel="noopener">{icon('pin')}<h2>Address</h2><p>{address_html()}</p><span class="link-arrow">Open in Google Maps {icon('external')}</span></a>
-    <a class="contact-card" href="tel:{SITE['phone_tel']}">{icon('phone')}<h2>Phone</h2><p>{SITE['phone_display']}</p><span class="link-arrow">Call us {icon('arrow-right')}</span></a>
-    <a class="contact-card" href="mailto:{SITE['email']}">{icon('mail')}<h2>Email</h2><p>{SITE['email']}</p><span class="link-arrow">Send an email {icon('arrow-right')}</span></a>
-  </div>
-</section>
+{page_head(R, 'Contact Us', [], 'We would love to hear from you. Call, email or send us a message and we will get back to you.')}
 
 <section class="section">
   <div class="container form-layout">
     <div class="form-intro">
-      <p class="eyebrow">Contact form</p>
-      <h2>Send us a message</h2>
-      <p>Whether you want to book a coaching session, join a workshop, volunteer or partner with us, send us a message and we'll get back to you.</p>
+      <ul class="contact-list">
+        <li>{icon('phone')}<div><h2>Phone</h2><a href="tel:{SITE['phone_tel']}">{SITE['phone_display']}</a></div></li>
+        <li>{icon('mail')}<div><h2>Email</h2><a href="mailto:{SITE['email']}">{SITE['email']}</a></div></li>
+        <li>{icon('pin')}<div><h2>Address</h2><p>{address_html()}</p><a href="{SITE['maps']}" target="_blank" rel="noopener">Open in Google Maps</a></div></li>
+      </ul>
       <div class="find-us">
-        <h3>Find us</h3>
-        <p>We are based at The Mill Enterprise Hub in Greenhills, Drogheda. Our workshops take place at the Barbican Centre, William Street, Drogheda.</p>
+        <p>Our workshops take place at the Barbican Centre, William Street, Drogheda.</p>
         {socials()}
       </div>
     </div>
     <form class="form card-surface" data-form="contact" novalidate>
+      <h2 class="h3">Send us a message</h2>
       <div class="field-row">
         <div class="field"><label for="c-name">Full name</label><input id="c-name" name="name" autocomplete="name" required></div>
         <div class="field"><label for="c-email">Email</label><input id="c-email" type="email" name="email" autocomplete="email" required></div>
@@ -722,7 +669,7 @@ def build_financial() -> None:
     R = "../"
     rows = "".join(f"<tr><th scope=\"row\">{e(a)}</th><td>{e(b)}</td><td>{e(c)}</td></tr>" for a, b, c in FINANCIALS_2022)
     body = f"""
-{page_hero(R, 'Financial Information', [], 'We are committed to being open about how we are funded and how we use our resources.', 'Transparency')}
+{page_head(R, 'Financial Information', [], 'We are committed to being open about how we are funded and how we use our resources.')}
 <section class="section">
   <div class="container split split--top">
     <div class="prose">
@@ -755,7 +702,7 @@ def build_financial() -> None:
 def build_privacy() -> None:
     R = "../"
     body = f"""
-{page_hero(R, 'Privacy Policy', [], 'How we collect, use and protect your personal information.')}
+{page_head(R, 'Privacy Policy', [], 'How we collect, use and protect your personal information.')}
 <section class="section">
   <div class="container prose prose--page">
     <p class="muted">Last updated: {_dt.date.today().strftime('%-d %B %Y')}</p>
@@ -811,7 +758,7 @@ def build_privacy() -> None:
 def build_cookies() -> None:
     R = "../"
     body = f"""
-{page_hero(R, 'Cookies Policy', [], 'What cookies are and how this website uses them.')}
+{page_head(R, 'Cookies Policy', [], 'What cookies are and how this website uses them.')}
 <section class="section">
   <div class="container prose prose--page">
     <p class="muted">Last updated: {_dt.date.today().strftime('%-d %B %Y')}</p>
@@ -844,14 +791,12 @@ def build_404() -> None:
     # Served at any missing URL, so it uses absolute paths.
     R = "/"
     body = f"""
-<section class="page-hero page-hero--center">
+<section class="page-head page-head--center">
   <div class="container">
-    <p class="eyebrow">Error 404</p>
     <h1>We can't find that page</h1>
     <p class="lead">The page may have moved when we rebuilt our website.</p>
-    <div class="hero-actions hero-actions--center">{btn(R, 'Go to the homepage', '/')}{btn(R, 'See our projects', '/projects/', 'ghost', None)}</div>
+    <div class="actions">{btn(R, 'Go to the homepage', '/')}{btn(R, 'See our projects', '/projects/', 'secondary')}</div>
   </div>
-  {shamrock('hero-shamrock')}
 </section>
 """
     layout("404.html", "Page not found", "This page could not be found.", body)

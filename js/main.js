@@ -185,16 +185,4 @@
       }
     });
   });
-
-  // Gentle reveal on scroll
-  if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    var targets = document.querySelectorAll(".card, .feature, .member, .way, .split-media, .contact-card, .facts-card");
-    document.documentElement.classList.add("reveal-ready");
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) { entry.target.classList.add("is-visible"); io.unobserve(entry.target); }
-      });
-    }, { rootMargin: "0px 0px -40px 0px" });
-    targets.forEach(function (t) { t.classList.add("reveal"); io.observe(t); });
-  }
 })();

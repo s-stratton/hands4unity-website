@@ -58,17 +58,18 @@ GET_INVOLVED_BENEFITS = [
     ("newspaper", "Newsletter", "A monthly newsletter with upcoming projects and organisation updates."),
 ]
 
-# Organisations named as funders, sponsors or partners on the old site's project pages.
+# Funders, sponsors and partners, shown as logos on the homepage.
+# Logos live in assets/img/supporters/, trimmed and resized to at most 400x140 pixels.
 SUPPORTERS = [
-    "Louth County Council",
-    "Louth Local Development",
-    "Healthy Ireland",
-    "Louth Volunteer Centre",
-    "Lifestyle Development",
-    "Drogheda Credit Union",
-    "Drogheda Lions Club",
-    "EBS Drogheda",
-    "Scholars Inn Hotel",
+    ("Louth County Council", "supporters/louth-county-council.png"),
+    ("Louth Local Development", "supporters/louth-local-development.png"),
+    ("Healthy Ireland", "supporters/healthy-ireland.png"),
+    ("Louth Volunteer Centre", "supporters/louth-volunteer-centre.png"),
+    ("Lifestyle Development", "supporters/lifestyle-development.png"),
+    ("Drogheda Credit Union", "supporters/drogheda-credit-union.png"),
+    ("Drogheda Lions Club", "supporters/drogheda-lions-club.png"),
+    ("EBS Drogheda", "supporters/ebs-drogheda.png"),
+    ("Scholars Townhouse Hotel", "supporters/scholars-townhouse-hotel.png"),
 ]
 
 TEAM_BOARD = [

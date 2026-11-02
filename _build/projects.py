@@ -3,6 +3,10 @@
 Each project keeps its old URL slug so existing links keep working.
 Image paths are relative to assets/img/.
 Body text is HTML.
+
+Programmes that are running now have "running": True. The homepage lists them under
+"How we can help" with their "summary" facts and "action" button, so set or remove the flag
+when a programme starts or ends.
 """
 
 PROJECTS = [
@@ -99,6 +103,9 @@ PROJECTS = [
         "when": "Ongoing",
         "where": "Drogheda",
         "excerpt": "Free, practical support for migrant and Irish women who want to enter the workforce, return to work or change career.",
+        "running": True,
+        "summary": [("When", "By appointment"), ("Where", "Drogheda"), ("Cost", "Free")],
+        "action": ("Book a free session", "contact-us/?subject=Coaching%20appointment"),
         "cover": "projects/coaching/cover.jpg",
         "card": "projects/coaching/cover.jpg",
         "sections": [
@@ -158,6 +165,9 @@ PROJECTS = [
         "when": "Every Tuesday",
         "where": "Barbican Centre, Drogheda",
         "excerpt": "Improve your English and learn a practical skill in a warm, welcoming space. Every Tuesday evening in Drogheda.",
+        "running": True,
+        "summary": [("When", "Every Tuesday, 6:00pm to 7:30pm"), ("Where", "Barbican Centre, Drogheda"), ("Cost", "€5 per person")],
+        "action": ("Join a workshop", "contact-us/?subject=Sewing%20Workshop"),
         "cover": "projects/sewing/cover.jpg",
         "card": "projects/sewing/cover.jpg",
         "sections": [
