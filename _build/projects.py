@@ -7,9 +7,90 @@ Body text is HTML.
 Programmes that are running now have "running": True. The homepage lists them under
 "How we can help" with their "summary" facts and "action" button, so set or remove the flag
 when a programme starts or ends.
+
+A programme with a "spotlight" is featured at the top of the homepage instead, with its
+"sessions" (one per location) and its "cta" buttons. Remove the spotlight when it ends.
 """
 
+SEWING_WHATSAPP = "https://wa.me/353851449732?text=Hello%2C%20I%20would%20like%20to%20save%20a%20place%20at%20the%20free%20sewing%20and%20repair%20workshop."
+
 PROJECTS = [
+    {
+        "slug": "sewing-and-repair-workshops",
+        "title": "Free Sewing and Repair Workshops",
+        "kind": "Programme",
+        "when": "From November 2026",
+        "where": "Drogheda and Dundalk",
+        "excerpt": "Learn to mend and alter your own clothes at free weekly workshops in Drogheda and Dundalk. Open to all, no experience needed.",
+        "running": True,
+        "spotlight": {
+            "title": "Free sewing and repair workshops",
+            "text": "Got a dress that doesn't fit, a coat with a missing button or jeans with a broken seam? Come and learn to fix them yourself. The workshops are free, open to everyone and you don't need any experience. Sewing machines and materials are provided.",        },
+        "summary": [("When", "Tuesdays in Drogheda, Fridays in Dundalk"), ("Where", "Drogheda and Dundalk"), ("Cost", "Free")],
+        "action": ("Save your place", SEWING_WHATSAPP),
+        "cover": "projects/sewing/cover.jpg",
+        "card": "projects/sewing/cover.jpg",
+        "sections": [
+            {
+                "heading": "Your favourite clothes deserve a second life",
+                "image": "projects/sewing/cover.jpg",
+                "body": """
+<p>Got a dress that doesn't fit, a coat with a missing button or jeans with a broken seam? Come and learn to fix them yourself.</p>
+<p>Our free sewing and repair workshops run every week in Drogheda and Dundalk. They are open to everyone, and you don't need any experience. Sewing machines and materials are provided, so just bring a garment you'd like to fix.</p>
+<p>It's a relaxed, friendly group and everyone is welcome. You can join any week.</p>
+<p>Already coming to our Tuesday sewing workshop in Drogheda? It's free for these 10 weeks.</p>
+""",
+            },
+            {
+                "heading": "What you'll learn",
+                "image": "projects/sewing/materials.jpg",
+                "body": """
+<ul class="ticks">
+<li>How to sew on a button, fix a seam, mend a tear and take up a hem.</li>
+<li>How to turn something you already own into something new.</li>
+</ul>
+<p><strong>Plus:</strong> a free online course on reducing household waste, with a certificate.</p>
+<p>The workshops are part of <strong>Green Skills for New Communities</strong>, a Hands4Unity project with MindBloom Academy Europe and EurAV, supported by Louth County Council.</p>
+""",
+            },
+        ],
+        "details_title": "Times and places",
+        "sessions": [
+            {
+                "town": "Drogheda",
+                "day": "Every Tuesday",
+                "time": "6:30pm to 8:00pm",
+                "dates": "10 weeks from 10 November",
+                "venue": "The Barbican Centre",
+                "address": "William Street, Drogheda",
+                "maps": "https://www.google.com/maps/search/?api=1&query=Barbican+Centre+William+Street+Drogheda",
+                "flyer": "projects/sewing-and-repair/flyer-drogheda.jpg",
+            },
+            {
+                "town": "Dundalk",
+                "day": "Every Friday",
+                "time": "7:00pm to 8:30pm",
+                "dates": "10 weeks from 6 November",
+                "venue": "Muirhevnamor Community Centre",
+                "address": "District Park, Muirhevnamore, Dundalk, A91 W974",  # no-break space keeps the Eircode on one line
+                "maps": "https://www.google.com/maps/search/?api=1&query=Muirhevnamor+Community+Centre+Dundalk+A91+W974",
+                "flyer": "projects/sewing-and-repair/flyer-dundalk.jpg",
+            },
+        ],
+        "details": [
+            ("euro", "Cost", "Free"),
+            ("users", "Who can come", "Everyone, no experience needed"),
+            ("check", "Provided", "Sewing machines and materials"),
+            ("phone", "Call or WhatsApp", "085 144 9732"),
+        ],
+        "cta": {
+            "title": "Save your place",
+            "text": "Join any week. Call or WhatsApp us on 085 144 9732 and we'll keep a place for you.",  # no-break spaces keep the number on one line
+            "label": "Message us on WhatsApp",
+            "href": SEWING_WHATSAPP,
+            "secondary": ("Call 085 144 9732", "tel:+353851449732"),
+        },
+    },
     {
         "slug": "kids-can-code-summer-camp-2025",
         "title": "Kids Can Code 2025 Camp",
@@ -165,7 +246,10 @@ PROJECTS = [
         "when": "Every Tuesday",
         "where": "Barbican Centre, Drogheda",
         "excerpt": "Improve your English and learn a practical skill in a warm, welcoming space. Every Tuesday evening in Drogheda.",
-        "running": True,
+        # Free for 10 weeks from 10 November 2026 as the Drogheda session of sewing-and-repair-workshops.
+        # When that ends, set "running": True again and remove the notice.
+        "notice": ("From 10 November, the Tuesday workshop is free for 10 weeks, from 6:30pm to 8:00pm.",
+                   "See the free workshops", "projects/sewing-and-repair-workshops/"),
         "summary": [("When", "Every Tuesday, 6:00pm to 7:30pm"), ("Where", "Barbican Centre, Drogheda"), ("Cost", "€5 per person")],
         "action": ("Join a workshop", "contact-us/?subject=Sewing%20Workshop"),
         "cover": "projects/sewing/cover.jpg",

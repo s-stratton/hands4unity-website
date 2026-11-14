@@ -131,7 +131,50 @@ def help_card(R: str, p: dict) -> str:
 </article>"""
 
 
-def page_head(R: str, title: str, crumbs: list[tuple[str, str]], intro: str = "", meta: str = "") -> str:
+def spotlight(R: str, p: dict) -> str:
+    """The programme featured under the homepage hero: where and when it runs, and how to join."""
+    s, c = p["spotlight"], p["cta"]
+    times = "".join(
+        f"<div><dt>{e(x['town'])}</dt><dd><strong>{e(x['day'])}, <span>{e(x['time'])}</span></strong>{e(x['venue'])}</dd></div>"
+        for x in p["sessions"]
+    )
+    return f"""
+<section class="section spotlight">
+  <div class="container split">
+    <figure class="split-media">{img(R, p['card'], '')}</figure>
+    <div>
+      <p class="card-meta"><span class="tag tag--new">New</span>{e(p['when'])}</p>
+      <h2>{e(s['title'])}</h2>
+      <p>{e(s['text'])}</p>
+      <dl class="timetable">{times}</dl>
+      <p>{e(c['text'])}</p>
+      <div class="actions">{btn(R, c['label'], c['href'])}{more_link(R, 'More details', f"projects/{p['slug']}/")}</div>
+    </div>
+  </div>
+</section>"""
+
+
+def session_card(R: str, s: dict) -> str:
+    """One town a programme runs in, with its flyer (opens full size in the lightbox)."""
+    return f"""
+<article class="session">
+  <div class="session-head">
+    <h3>{e(s['town'])}</h3>
+    <p class="session-dates">{e(s['dates'])}</p>
+  </div>
+  <figure class="session-flyer">
+    <button type="button" class="gallery-item" data-full="{R}assets/img/{s['flyer']}" aria-label="Open the {e(s['town'])} flyer">{img(R, s['flyer'], '')}</button>
+    <figcaption>Flyer</figcaption>
+  </figure>
+  <dl class="facts facts--stack">
+    <div class="fact">{icon('calendar')}<dt>When</dt><dd>{e(s['day'])}<br>{e(s['time'])}</dd></div>
+    <div class="fact">{icon('pin')}<dt>Where</dt><dd>{e(s['venue'])}<br>{e(s['address'])}</dd></div>
+  </dl>
+  <a class="more-link" href="{s['maps']}" target="_blank" rel="noopener">Get directions {icon('external')}</a>
+</article>"""
+
+
+def page_head(R: str, title: str, crumbs: list[tuple[str, str]], intro: str = "", meta: str = "", note: str = "") -> str:
     trail = "".join(f'<li><a href="{link(R, h)}">{e(t)}</a></li>' for h, t in crumbs)
     intro_html = f'<p class="lead">{intro}</p>' if intro else ""
     return f"""
@@ -139,7 +182,7 @@ def page_head(R: str, title: str, crumbs: list[tuple[str, str]], intro: str = ""
   <div class="container">
     <nav class="breadcrumb" aria-label="Breadcrumb"><ol><li><a href="{link(R, '')}">Home</a></li>{trail}<li aria-current="page">{e(title)}</li></ol></nav>
     <h1>{e(title)}</h1>
-    {meta}{intro_html}
+    {meta}{intro_html}{note}
   </div>
 </section>"""
 
@@ -289,7 +332,8 @@ def layout(path: str, title: str, description: str, body: str, active: str = "",
 
 def build_home() -> None:
     R = ""
-    running = [p for p in PROJECTS if p.get("running")]
+    featured = next((p for p in PROJECTS if p.get("spotlight")), None)
+    running = [p for p in PROJECTS if p.get("running") and p is not featured]
     events = [BY_SLUG[s] for s in ("taste-of-all-nations-2025", "africa-day-2025", "inaugural-taste-of-all-nations")]
     founder = TEAM_BOARD[0]
     supporters = "".join(f"<li>{img(R, logo, name)}</li>" for name, logo in SUPPORTERS)
@@ -308,6 +352,7 @@ def build_home() -> None:
     <figure class="hero-photo">{img(R, 'general/dancers-stage.jpg', 'Women in colourful traditional dress dancing on stage at a Hands 4 Unity event', eager=True, pos='50% 40%')}</figure>
   </div>
 </section>
+{spotlight(R, featured) if featured else ""}
 
 <section class="section" id="help">
   <div class="container">
@@ -487,11 +532,14 @@ def build_project(p: dict) -> None:
         items = "".join(
             f'<div class="fact">{icon(ic)}<dt>{e(label)}</dt><dd>{e(val)}</dd></div>' for ic, label, val in p["details"]
         )
+        # The lightbox only handles the first [data-gallery] on a page, so don't combine sessions with a gallery.
+        sessions = f'<div class="sessions" data-gallery>{"".join(session_card(R, s) for s in p["sessions"])}</div>' if p.get("sessions") else ""
         facts = f"""
 <section class="section">
   <div class="container">
     <div class="facts-card">
       <h2>{e(p.get('details_title', 'Details'))}</h2>
+      {sessions}
       <dl class="facts">{items}</dl>
     </div>
   </div>
@@ -533,9 +581,14 @@ def build_project(p: dict) -> None:
         f'<p class="project-meta"><span class="tag{" tag--running" if p.get("running") else ""}">{e(label)}</span>'
         f'<span>{icon("calendar")}{e(p["when"])}</span><span>{icon("pin")}{e(p["where"])}</span></p>'
     )
+    # A short-term change to the usual details, such as a programme that is free for a few weeks.
+    note = ""
+    if p.get("notice"):
+        text, label, href = p["notice"]
+        note = f'<p class="page-notice"><span>{e(text)}</span>{more_link(R, label, href)}</p>'
 
     body = f"""
-{page_head(R, p['title'], [('projects/', 'Projects')], e(p['excerpt']), meta)}
+{page_head(R, p['title'], [('projects/', 'Projects')], e(p['excerpt']), meta, note)}
 <div class="container project-photo">{img(R, p['card'], p['title'], eager=True, pos='50% 40%')}</div>
 {''.join(sections[:1])}
 {facts}
@@ -639,7 +692,7 @@ def build_contact() -> None:
         <li>{icon('pin')}<div><h2>Address</h2><p>{address_html()}</p><a href="{SITE['maps']}" target="_blank" rel="noopener">Open in Google Maps</a></div></li>
       </ul>
       <div class="find-us">
-        <p>Our workshops take place at the Barbican Centre, William Street, Drogheda.</p>
+        <p>Our workshops take place at the Barbican Centre, William Street, Drogheda, and at Muirhevnamor Community Centre in Dundalk.</p>
         {socials()}
       </div>
     </div>
@@ -712,7 +765,7 @@ def build_privacy() -> None:
     <p>The data controller is {SITE['legal']}, {address_html(', ')}. You can contact us about this policy at <a href="mailto:{SITE['email']}">{SITE['email']}</a>.</p>
 
     <h2>What we collect</h2>
-    <p>We only collect the personal data you choose to give us, for example when you send a message through our contact or get involved forms, sign up to our newsletter, email or phone us. This may include:</p>
+    <p>We only collect the personal data you choose to give us, for example when you send a message through our contact or get involved forms, sign up to our newsletter, email, phone or WhatsApp us. This may include:</p>
     <ul>
       <li>Your name</li>
       <li>Your email address</li>
@@ -773,7 +826,7 @@ def build_cookies() -> None:
     <ul>
       <li><strong>Cloudflare Web Analytics</strong> counts how many people visit our pages. It does not use cookies and does not identify individual visitors.</li>
       <li><strong>Google Fonts</strong> provides the typefaces used on this site. Your browser requests the fonts from Google's servers. Google Fonts does not set cookies.</li>
-      <li><strong>GivenGain</strong>, <strong>Eventbrite</strong>, <strong>Google Maps</strong> and our social media pages may set their own cookies when you follow a link to them. Their own cookie policies apply.</li>
+      <li><strong>GivenGain</strong>, <strong>Eventbrite</strong>, <strong>Google Maps</strong>, <strong>WhatsApp</strong> and our social media pages may set their own cookies when you follow a link to them. Their own cookie policies apply.</li>
     </ul>
 
     <h2>Managing cookies</h2>
