@@ -8,8 +8,7 @@ Programmes that are running now have "running": True. The homepage lists them un
 "How we can help" with their "summary" facts and "action" button, so set or remove the flag
 when a programme starts or ends.
 
-A programme with a "spotlight" is featured at the top of the homepage instead, with its
-"sessions" (one per location) and its "cta" buttons. Remove the spotlight when it ends.
+A programme with "new": True gets a "New" label on its homepage card. Remove it after a few weeks.
 """
 
 SEWING_WHATSAPP = "https://wa.me/353851449732?text=Hello%2C%20I%20would%20like%20to%20save%20a%20place%20at%20the%20free%20sewing%20and%20repair%20workshop."
@@ -23,11 +22,14 @@ PROJECTS = [
         "where": "Drogheda and Dundalk",
         "excerpt": "Learn to mend and alter your own clothes at free weekly workshops in Drogheda and Dundalk. Open to all, no experience needed.",
         "running": True,
-        "spotlight": {
-            "title": "Free sewing and repair workshops",
-            "text": "Got a dress that doesn't fit, a coat with a missing button or jeans with a broken seam? Come and learn to fix them yourself. The workshops are free, open to everyone and you don't need any experience. Sewing machines and materials are provided.",        },
-        "summary": [("When", "Tuesdays in Drogheda, Fridays in Dundalk"), ("Where", "Drogheda and Dundalk"), ("Cost", "Free")],
-        "action": ("Save your place", SEWING_WHATSAPP),
+        "new": True,
+        "summary": [
+            # No-break spaces keep each time range on one line on phones.
+            ("Drogheda", "Tuesdays, 6:30pm to 8:00pm"),
+            ("Dundalk", "Fridays, 7:00pm to 8:30pm"),
+            ("Cost", "Free"),
+        ],
+        "action": ("Save a place on WhatsApp", SEWING_WHATSAPP),
         "cover": "projects/sewing/cover.jpg",
         "card": "projects/sewing/cover.jpg",
         "sections": [

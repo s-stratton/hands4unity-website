@@ -119,39 +119,18 @@ def help_card(R: str, p: dict) -> str:
     url = f"{R}projects/{p['slug']}/"
     facts = "".join(f"<div><dt>{e(k)}</dt><dd>{e(v)}</dd></div>" for k, v in p["summary"])
     label, href = p["action"]
+    new = '<p class="card-meta"><span class="tag tag--new">New</span></p>' if p.get("new") else ""
     return f"""
 <article class="help-card">
   <a class="help-media" href="{url}" tabindex="-1" aria-hidden="true">{img(R, p['card'], '')}</a>
   <div class="help-body">
+    {new}
     <h3><a href="{url}">{e(p['title'])}</a></h3>
     <p>{e(p['excerpt'])}</p>
     <dl class="help-facts">{facts}</dl>
     <div class="help-actions">{btn(R, label, href)}{more_link(R, 'More details', f"projects/{p['slug']}/")}</div>
   </div>
 </article>"""
-
-
-def spotlight(R: str, p: dict) -> str:
-    """The programme featured under the homepage hero: where and when it runs, and how to join."""
-    s, c = p["spotlight"], p["cta"]
-    times = "".join(
-        f"<div><dt>{e(x['town'])}</dt><dd><strong>{e(x['day'])}, <span>{e(x['time'])}</span></strong>{e(x['venue'])}</dd></div>"
-        for x in p["sessions"]
-    )
-    return f"""
-<section class="section spotlight">
-  <div class="container split">
-    <figure class="split-media">{img(R, p['card'], '')}</figure>
-    <div>
-      <p class="card-meta"><span class="tag tag--new">New</span>{e(p['when'])}</p>
-      <h2>{e(s['title'])}</h2>
-      <p>{e(s['text'])}</p>
-      <dl class="timetable">{times}</dl>
-      <p>{e(c['text'])}</p>
-      <div class="actions">{btn(R, c['label'], c['href'])}{more_link(R, 'More details', f"projects/{p['slug']}/")}</div>
-    </div>
-  </div>
-</section>"""
 
 
 def session_card(R: str, s: dict) -> str:
@@ -332,8 +311,7 @@ def layout(path: str, title: str, description: str, body: str, active: str = "",
 
 def build_home() -> None:
     R = ""
-    featured = next((p for p in PROJECTS if p.get("spotlight")), None)
-    running = [p for p in PROJECTS if p.get("running") and p is not featured]
+    running = [p for p in PROJECTS if p.get("running")]
     events = [BY_SLUG[s] for s in ("taste-of-all-nations-2025", "africa-day-2025", "inaugural-taste-of-all-nations")]
     founder = TEAM_BOARD[0]
     supporters = "".join(f"<li>{img(R, logo, name)}</li>" for name, logo in SUPPORTERS)
@@ -352,11 +330,10 @@ def build_home() -> None:
     <figure class="hero-photo">{img(R, 'general/dancers-stage.jpg', 'Women in colourful traditional dress dancing on stage at a Hands 4 Unity event', eager=True, pos='50% 40%')}</figure>
   </div>
 </section>
-{spotlight(R, featured) if featured else ""}
 
 <section class="section" id="help">
   <div class="container">
-    {section_head('How we can help', 'Programmes running now in Drogheda. Everyone is welcome.', more_link(R, 'All projects', 'projects/'))}
+    {section_head('How we can help', 'Programmes running now in Drogheda and Dundalk. Everyone is welcome.', more_link(R, 'All projects', 'projects/'))}
     <div class="help">{''.join(help_card(R, p) for p in running)}</div>
   </div>
 </section>
